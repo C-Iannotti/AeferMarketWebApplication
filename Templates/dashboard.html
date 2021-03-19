@@ -1,0 +1,22 @@
+﻿{% include "head.html" %}
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<body>
+    <form method="post" action="">
+        <h1>Dashboard {{branch}}</h1>
+        {% csrf_token %}
+        {{descriptive_graphs |safe}}
+        {{error |safe}}
+        {{demand_selection}}
+        <input type="submit" value="Update" />
+        {{demand_graphs |safe}}
+        {{accuracy_measures |safe}}
+    </form>
+    <div id="container">
+        <button onclick="location.href = '/'" style="text-align:right;">Log out</button>
+        <button onclick="location.href = '/data/'" style="text-align:right;">Access Data and Logs</button>
+    </div>
+</body>
+</html>

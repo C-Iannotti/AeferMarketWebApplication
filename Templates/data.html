@@ -1,0 +1,19 @@
+﻿{% include "head.html" %}
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<body>
+    <h1>Data</h1>
+    {{error |safe}}
+    <form method="post" action="" style="vertical-align:top;">
+        {% csrf_token %}
+        {{form}}
+        <input type="submit" value="Update" />
+        <br />
+    </form>
+    <div id="container">
+        {{df_result |safe}}
+        <button onclick="location.href = '/dashboard/'">Back</button>
+    </div>
+</body>
+</html>
