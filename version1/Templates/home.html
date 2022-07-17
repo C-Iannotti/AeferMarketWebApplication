@@ -1,0 +1,15 @@
+﻿{% include "head.html" %}
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<body>
+    <h1>Login Form</h1>
+    <form method="POST" action="">
+        {% csrf_token %}
+        {{error |safe}}
+        {{form}}
+        <br />
+        <input type="submit" value="Submit" />
+    </form>
+</body>
+</html>
