@@ -7,6 +7,8 @@ class Home extends React.Component {
         this.state = {}
         this.getSalesData = this.getSalesData.bind(this);
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
+        this.getRatingsData = this.getRatingsData.bind(this);
+        this.handleGetRatingsData = this.handleGetRatingsData.bind(this);
     }
 
     getSalesData(endDate=undefined, timeframeUnit=undefined) {
@@ -14,8 +16,8 @@ class Home extends React.Component {
             method: "post",
             url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
             data: {
-                endDate: endDate,
-                timeframeUnit: timeframeUnit
+                endDate,
+                timeframeUnit
             }
         })
         .then(res => {
@@ -24,13 +26,37 @@ class Home extends React.Component {
         })
         .catch(err => {
             console.error(err)
-        })
+        });
     }
 
     handleGetSalesData() {
-        let endDate = document.getElementById("end-date-input").value
-        let timeframeUnit = document.getElementById("timeframe-unit-input").value
-        this.getSalesData(endDate, timeframeUnit)
+        let endDate = document.getElementById("end-date-input").value;
+        let timeframeUnit = document.getElementById("timeframe-unit-input").value;
+        this.getSalesData(endDate, timeframeUnit);
+    }
+
+    getRatingsData(begDate=undefined, endDate=undefined) {
+        axios({
+            method: "post",
+            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_RATINGS_TIMEFRAME_PATH"],
+            data: {
+                begDate,
+                endDate
+            }
+        })
+        .then(res => {
+            console.log(res)
+            this.setState({ratings: res.data})
+        })
+        .catch(err => {
+            console.error(err)
+        });
+    }
+
+    handleGetRatingsData() {
+        let begDate = document.getElementById("ratings-beg-date-input").value;
+        let endDate = document.getElementById("ratings-end-date-input").value;
+        this.getRatingsData(begDate, endDate);
     }
 
     render() {
@@ -49,6 +75,13 @@ class Home extends React.Component {
                 <button type="button" onClick={this.handleGetSalesData}>Submit</button>
                 <br />
                 {this.state.sales && JSON.stringify(this.state.sales)}
+                <br />
+                <br />
+                <input id="ratings-beg-date-input" name="ratings-beg-date-input" type="date" />
+                <input id="ratings-end-date-input" name="ratings-end-date-input" type="date" />
+                <button type="button" onClick={this.handleGetRatingsData}>Submit</button>
+                <br />
+                {this.state.ratings && JSON.stringify(this.state.ratings)}
             </div>
         )
     }
