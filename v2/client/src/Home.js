@@ -11,13 +11,13 @@ class Home extends React.Component {
         this.handleGetRatingsData = this.handleGetRatingsData.bind(this);
     }
 
-    getSalesData(endDate=undefined, timeframeUnit=undefined) {
+    getSalesData(begDate=undefined, endDate=undefined) {
         axios({
             method: "post",
             url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
             data: {
-                endDate,
-                timeframeUnit
+                begDate,
+                endDate
             }
         })
         .then(res => {
@@ -30,9 +30,9 @@ class Home extends React.Component {
     }
 
     handleGetSalesData() {
-        let endDate = document.getElementById("end-date-input").value;
-        let timeframeUnit = document.getElementById("timeframe-unit-input").value;
-        this.getSalesData(endDate, timeframeUnit);
+        let begDate = document.getElementById("sales-beg-date-input").value;
+        let endDate = document.getElementById("sales-end-date-input").value;
+        this.getSalesData(begDate, endDate);
     }
 
     getRatingsData(begDate=undefined, endDate=undefined) {
@@ -63,15 +63,8 @@ class Home extends React.Component {
         return (
             <div id="home-page" className="home-page">
                 <p>This do be the home page</p>
-                <input id="end-date-input" name="end-date-input" type="date" />
-                <select id="timeframe-unit-input" name="timeframe-unit-input" defaultValue="default">
-                    <option value="default">30 days</option>
-                    <option value="day">1 day</option>
-                    <option value="week">1 week</option>
-                    <option value="month">1 month</option>
-                    <option value="quarter">1 yearly-quarter</option>
-                    <option value="year">1 year</option>
-                </select>
+                <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
+                <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
                 <button type="button" onClick={this.handleGetSalesData}>Submit</button>
                 <br />
                 {this.state.sales && JSON.stringify(this.state.sales)}

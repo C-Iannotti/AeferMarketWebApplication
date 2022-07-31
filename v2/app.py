@@ -35,48 +35,32 @@ def get_first_sale():
 def get_sales_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
-        end_date = datetime.date.today()
         errors = []
-        timeframe_unit = "month"
-        timeframe = 1
-        if "timeframeUnit" not in body:
-            pass
-        elif body["timeframeUnit"] == "day":
-            timeframe = 1
-        elif body["timeframeUnit"] == "week":
-            timeframe = 7
-        elif body["timeframeUnit"] == "month":
-            timeframe_unit = "month"
-            timeframe = 1
-        elif body["timeframeUnit"] == "quarter":
-            timeframe_unit = "month"
-            timeframe = 3
-        elif body["timeframeUnit"] == "year":
-            timeframe_unit = "year"
-            timeframe = 1
-
-        if "endDate" in body:
+        if "endDate" not in body and os.getenv("DATA") == "Testing":
+            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
+        elif "endDate" not in body:
+            body["endDate"] = datetime.date.today()
+        else:
             try:
-                end_date = parser.parse(body["endDate"]).date()
+                body["endDate"] = parser.parse(body["endDate"]).date()
             except:
-                errors.append("Passed Invalid Date")
-        elif os.getenv("DATA") == "Testing":
-            end_date = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-
-        beg_date = datetime.date.today()
-        if timeframe_unit == "day":
-            beg_date = end_date - relativedelta.relativedelta(days=timeframe)
-        elif timeframe_unit == "month":
-            beg_date = end_date - relativedelta.relativedelta(months=timeframe)
-        elif timeframe_unit == "year":
-            beg_date = end_date - relativedelta.relativedelta(years=timeframe)
-        end_date = end_date - relativedelta.relativedelta(days=1)
-        results = {}
+                errors.append("Passed Invalid End Date")
+                body["endDate"] = datetime.date.today()
         
+        if "begDate" not in body:
+            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+        else:
+            try:
+                body["begDate"] = parser.parse(body["begDate"]).date()
+            except:
+                errors.append("Passed Invalid End Date")
+                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+        
+        results = {}
         query_results = conn.execute(f"""
             SELECT "ProductLine", "Gender", SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
             FROM "Sales"
-            WHERE "Date" Between '{beg_date}' AND '{end_date}'
+            WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
             GROUP BY "ProductLine", "Gender"
             ORDER BY "ProductLine" ASC, GrossIncome DESC
         """)
