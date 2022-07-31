@@ -9,6 +9,8 @@ class Home extends React.Component {
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
         this.getRatingsData = this.getRatingsData.bind(this);
         this.handleGetRatingsData = this.handleGetRatingsData.bind(this);
+        this.getQuantityData = this.getQuantityData.bind(this);
+        this.handleGetQuantityData = this.handleGetQuantityData.bind(this);
     }
 
     getSalesData(begDate=undefined, endDate=undefined) {
@@ -59,6 +61,32 @@ class Home extends React.Component {
         this.getRatingsData(begDate, endDate);
     }
 
+    getQuantityData(begDate=undefined, endDate=undefined, productLine=undefined) {
+        axios({
+            method: "post",
+            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_QUANTITY_TRENDS_PATH"],
+            data: {
+                begDate,
+                endDate,
+                productLine
+            }
+        })
+        .then(res => {
+            console.log(res)
+            this.setState({quantity: res.data})
+        })
+        .catch(err => {
+            console.error(err)
+        });
+    }
+
+    handleGetQuantityData() {
+        let begDate = document.getElementById("quantity-beg-date-input").value;
+        let endDate = document.getElementById("quantity-end-date-input").value;
+        let productLine = document.getElementById("quantity-product-line-input").value;
+        this.getQuantityData(begDate, endDate, productLine);
+    }
+
     render() {
         return (
             <div id="home-page" className="home-page">
@@ -75,6 +103,14 @@ class Home extends React.Component {
                 <button type="button" onClick={this.handleGetRatingsData}>Submit</button>
                 <br />
                 {this.state.ratings && JSON.stringify(this.state.ratings)}
+                <br />
+                <br />
+                <input id="quantity-beg-date-input" name="quantity-beg-date-input" type="date" />
+                <input id="quantity-end-date-input" name="quantity-end-date-input" type="date" />
+                <input id="quantity-product-line-input" name="quantity-product-line-input" type="text" />
+                <button type="button" onClick={this.handleGetQuantityData}>Submit</button>
+                <br />
+                {this.state.quantity && JSON.stringify(this.state.quantity)}
             </div>
         )
     }

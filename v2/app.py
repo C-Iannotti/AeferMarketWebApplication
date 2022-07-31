@@ -62,7 +62,7 @@ def get_sales_timeframe():
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
             GROUP BY "ProductLine", "Gender"
-            ORDER BY "ProductLine" ASC, GrossIncome DESC
+            ORDER BY "ProductLine" ASC, GrossIncome DESC;
         """)
         for item in query_results:
             if item[0] not in results:
@@ -102,9 +102,50 @@ def get_ratings_timeframe():
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             GROUP BY "ProductLine", "Gender", "Date"
-            ORDER BY "ProductLine", "Gender", "Date"
+            ORDER BY "ProductLine", "Gender", "Date";
         """)
 
+        for line in query_results:
+            if line[0] not in results: results[line[0]] = {}
+            if line[1] is None: line[1] = "Unspecified"
+            if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
+            results[line[0]][line[1]][str(line[2])] = line[3]
+        res = make_response(results)
+        res.headers.add("Access-Control-Allow-Origin", "*")
+        return res
+
+@app.post("/api/quantity-trends")
+def get_quantity_trends():
+    with db_session.connection() as conn:
+        body = request.get_json()
+        errors = []
+        if "endDate" not in body and os.getenv("DATA") == "Testing":
+            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
+        elif "endDate" not in body:
+            body["endDate"] = datetime.date.today()
+        else:
+            try:
+                body["endDate"] = parser.parse(body["endDate"]).date()
+            except:
+                errors.append("Passed Invalid End Date")
+                body["endDate"] = datetime.date.today()
+        
+        if "begDate" not in body:
+            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+        else:
+            try:
+                body["begDate"] = parser.parse(body["begDate"]).date()
+            except:
+                errors.append("Passed Invalid End Date")
+                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+        results = {}
+        query_results = conn.execute(f"""
+            SELECT "CustomerType", "Gender", "Date", SUM("Quantity")
+            FROM "Sales"
+            {'WHERE "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""} 
+            GROUP BY "CustomerType", "Gender", "Date"
+            ORDER BY "CustomerType", "Gender", "Date";
+        """)
         for line in query_results:
             if line[0] not in results: results[line[0]] = {}
             if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
@@ -112,7 +153,6 @@ def get_ratings_timeframe():
         res = make_response(results)
         res.headers.add("Access-Control-Allow-Origin", "*")
         return res
-
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
