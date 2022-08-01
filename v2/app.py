@@ -15,7 +15,6 @@ cors = CORS(app)
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
 def home(path):
-    print("Why")
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         res = make_response(send_from_directory(app.static_folder, path))
         return res
@@ -36,9 +35,9 @@ def get_sales_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
-        if "endDate" not in body and os.getenv("DATA") == "Testing":
+        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body:
+        elif "endDate" not in body or not body["endDate"]:
             body["endDate"] = datetime.date.today()
         else:
             try:
@@ -47,7 +46,7 @@ def get_sales_timeframe():
                 errors.append("Passed Invalid End Date")
                 body["endDate"] = datetime.date.today()
         
-        if "begDate" not in body:
+        if "begDate" not in body or not body["begDate"]:
             body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
         else:
             try:
@@ -61,6 +60,7 @@ def get_sales_timeframe():
             SELECT "ProductLine", "Gender", SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
+            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""}
             GROUP BY "ProductLine", "Gender"
             ORDER BY "ProductLine" ASC, GrossIncome DESC;
         """)
@@ -77,9 +77,9 @@ def get_ratings_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
-        if "endDate" not in body and os.getenv("DATA") == "Testing":
+        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body:
+        elif "endDate" not in body or not body["endDate"]:
             body["endDate"] = datetime.date.today()
         else:
             try:
@@ -88,7 +88,7 @@ def get_ratings_timeframe():
                 errors.append("Passed Invalid End Date")
                 body["endDate"] = datetime.date.today()
         
-        if "begDate" not in body:
+        if "begDate" not in body or not body["begDate"]:
             body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
         else:
             try:
@@ -101,6 +101,7 @@ def get_ratings_timeframe():
             SELECT "ProductLine", "Gender", "Date", AVG("Rating") as "Rating"
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""}
             GROUP BY "ProductLine", "Gender", "Date"
             ORDER BY "ProductLine", "Gender", "Date";
         """)
@@ -119,9 +120,9 @@ def get_quantity_trends():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
-        if "endDate" not in body and os.getenv("DATA") == "Testing":
+        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body:
+        elif "endDate" not in body or not body["endDate"]:
             body["endDate"] = datetime.date.today()
         else:
             try:
@@ -130,7 +131,7 @@ def get_quantity_trends():
                 errors.append("Passed Invalid End Date")
                 body["endDate"] = datetime.date.today()
         
-        if "begDate" not in body:
+        if "begDate" not in body or not body["begDate"]:
             body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
         else:
             try:
@@ -142,7 +143,8 @@ def get_quantity_trends():
         query_results = conn.execute(f"""
             SELECT "CustomerType", "Gender", "Date", SUM("Quantity")
             FROM "Sales"
-            {'WHERE "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""} 
+            WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""} 
             GROUP BY "CustomerType", "Gender", "Date"
             ORDER BY "CustomerType", "Gender", "Date";
         """)
@@ -150,6 +152,17 @@ def get_quantity_trends():
             if line[0] not in results: results[line[0]] = {}
             if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
             results[line[0]][line[1]][str(line[2])] = line[3]
+        res = make_response(results)
+        res.headers.add("Access-Control-Allow-Origin", "*")
+        return res
+
+@app.post("/api/retrieve-product-lines")
+def retrieve_product_lines():
+    with db_session.connection() as conn:
+        results = {"productLines": []}
+        query_results = conn.execute("""SELECT DISTINCT "ProductLine" FROM "Sales" """)
+        for line in query_results:
+            results["productLines"].append(line[0])
         res = make_response(results)
         res.headers.add("Access-Control-Allow-Origin", "*")
         return res
