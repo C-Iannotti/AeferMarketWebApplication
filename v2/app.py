@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
-cors = CORS(app)
+cors = CORS(app, origins="http://localhost",
+      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"],
+      supports_credentials=True)
 
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
@@ -22,9 +24,19 @@ def home(path):
         res = make_response(send_from_directory("client/build", "index.html"))
         return res
 
+@app.route("/api/login", methods=["OPTIONS"])
+def login_options():
+    print("Here")
+    res = make_response()
+    res.headers.add("Access-Control-Allow-Credentials", True)
+    return res
+
 @app.post("/api/login")
 def login():
-    return "Attempted to login"
+    print("why")
+    res = make_response("Attempted to login")
+    res.headers.add("Access-Control-Allow-Credentials", "true")
+    return res
 
 @app.post("/api/first-sale")
 def get_first_sale():
@@ -69,7 +81,6 @@ def get_sales_timeframe():
                 results[item[0]] = {}
             results[item[0]][item[1]] = { "quantity": item[2], "grossIncome": float(item[3])}
         res = make_response(results)
-        res.headers.add("Access-Control-Allow-Origin", "*")
         return res
 
 @app.post("/api/ratings-timeframe")
@@ -112,7 +123,6 @@ def get_ratings_timeframe():
             if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
             results[line[0]][line[1]][str(line[2])] = line[3]
         res = make_response(results)
-        res.headers.add("Access-Control-Allow-Origin", "*")
         return res
 
 @app.post("/api/quantity-trends")
@@ -153,7 +163,6 @@ def get_quantity_trends():
             if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
             results[line[0]][line[1]][str(line[2])] = line[3]
         res = make_response(results)
-        res.headers.add("Access-Control-Allow-Origin", "*")
         return res
 
 @app.post("/api/retrieve-product-lines")
@@ -164,8 +173,12 @@ def retrieve_product_lines():
         for line in query_results:
             results["productLines"].append(line[0])
         res = make_response(results)
-        res.headers.add("Access-Control-Allow-Origin", "*")
         return res
+
+@app.after_request
+def apply_headers(res):
+    res.headers.add("Access-Control-Allow-Origin", os.getenv("WHITELISTED"))
+    return res
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):

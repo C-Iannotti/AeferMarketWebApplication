@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import Home from "./Home.js";
+import Login from "./Login.js"
 import { 
   BrowserRouter,
   Routes,
@@ -19,6 +20,7 @@ class App extends React.Component {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/example" element={<p>Example branch path</p>} />
+          <Route path="/login" element={<Login />} />
           <Route path="*" element={<p>Unable to find Route!</p>}/>
         </Routes>
       </BrowserRouter>

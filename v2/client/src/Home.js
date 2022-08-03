@@ -78,6 +78,9 @@ class Home extends React.Component {
                 begDate,
                 endDate,
                 productLine
+            },
+            headers: {
+                "Access-Control-Allow-Credentials": true
             }
         })
         .then(res => {
