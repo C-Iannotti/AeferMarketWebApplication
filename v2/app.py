@@ -3,16 +3,20 @@ import datetime
 from dateutil import parser, relativedelta
 from flask import Flask, send_from_directory, make_response, request
 from flask_cors import CORS
+from flask_login import LoginManager, login_user
 from database import db_session, init_db
-from models import Sales
+from models import Sales, Users
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
+app.secret_key = os.getenv("SECRET")
 cors = CORS(app, origins="http://localhost",
-      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"],
       supports_credentials=True)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
@@ -26,14 +30,30 @@ def home(path):
 
 @app.route("/api/login", methods=["OPTIONS"])
 def login_options():
-    print("Here")
     res = make_response()
-    res.headers.add("Access-Control-Allow-Credentials", True)
+    res.headers.add("Access-Control-Allow-Credentials", "true")
+    res.headers.add("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+    res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
     return res
 
 @app.post("/api/login")
 def login():
-    print("why")
+    with db_session.connection() as conn:
+        body = request.get_json()
+        query_results = conn.execute(f"""
+            SELECT "UserID", "Username", "Password", "AuthorityLevel"
+            FROM "Users"
+            WHERE "Username"='{body["username"]}'
+        """)
+        result = None
+        for line in query_results:
+            if check_password_hash(line[2], body["password"]):
+                result = line
+                break
+
+        if result is None: return "", 401
+        user = Users.query.get(result[0])
+        login_user(user)
     res = make_response("Attempted to login")
     res.headers.add("Access-Control-Allow-Credentials", "true")
     return res
@@ -174,6 +194,10 @@ def retrieve_product_lines():
             results["productLines"].append(line[0])
         res = make_response(results)
         return res
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.get(user_id)
 
 @app.after_request
 def apply_headers(res):

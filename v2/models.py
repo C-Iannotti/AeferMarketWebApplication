@@ -1,6 +1,7 @@
 from math import prod
 from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric
 from database import Base
+from flask_login import UserMixin
 import simplejson as json
 
 class Sales(Base):
@@ -68,3 +69,19 @@ class Sales(Base):
         }
     def toJSON(self):
         return json.dumps(self.toDict(), default=str)
+
+class Users(Base, UserMixin):
+    __tablename__ = "Users"
+    id = Column("UserID", String, primary_key=True)
+    username = Column("Username", String)
+    password = Column("Password", String)
+    authority_level = Column("AuthorityLevel", SmallInteger)
+
+    def __init__(self, id=None, username=None, password=None, authority_level=None):
+        self.id = id
+        self.username = username
+        self.password = password
+        self.authority_level = authority_level
+
+    def __repr__(self):
+        return f'<User id={self.id}>'
