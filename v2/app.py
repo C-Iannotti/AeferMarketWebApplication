@@ -1,9 +1,9 @@
 import os
 import datetime
 from dateutil import parser, relativedelta
-from flask import Flask, send_from_directory, make_response, request
+from flask import Flask, send_from_directory, make_response, request, session
 from flask_cors import CORS
-from flask_login import LoginManager, login_user
+from flask_login import LoginManager, login_user, current_user, login_required
 from database import db_session, init_db
 from models import Sales, Users
 from dotenv import load_dotenv
@@ -12,7 +12,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 load_dotenv()
 
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
-app.secret_key = os.getenv("SECRET")
+app.config["SECRET_KEY"] = os.getenv("SECRET")
+app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(minutes=30)
 cors = CORS(app, origins="http://localhost",
       supports_credentials=True)
 login_manager = LoginManager()
@@ -27,14 +28,6 @@ def home(path):
     else:
         res = make_response(send_from_directory("client/build", "index.html"))
         return res
-
-@app.route("/api/login", methods=["OPTIONS"])
-def login_options():
-    res = make_response()
-    res.headers.add("Access-Control-Allow-Credentials", "true")
-    res.headers.add("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
-    res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
-    return res
 
 @app.post("/api/login")
 def login():
@@ -52,17 +45,29 @@ def login():
                 break
 
         if result is None: return "", 401
+        session.permanent = True
         user = Users.query.get(result[0])
-        login_user(user)
-    res = make_response("Attempted to login")
-    res.headers.add("Access-Control-Allow-Credentials", "true")
-    return res
+        login_user(user, duration=datetime.timedelta(minutes=30))
+        res = make_response({ "message": "Logged in"})
+        return res
+
+@app.post("/api/authenticate")
+def authenticate():
+    if current_user.is_authenticated:
+        return make_response({
+            "isAuthenticated": current_user.is_authenticated,
+            "username": current_user.username
+            })
+    else:
+        return "", 401
 
 @app.post("/api/first-sale")
+@login_required
 def get_first_sale():
     return Sales.query.first().toJSON()
 
 @app.post("/api/sales-timeframe")
+@login_required
 def get_sales_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
@@ -104,6 +109,7 @@ def get_sales_timeframe():
         return res
 
 @app.post("/api/ratings-timeframe")
+@login_required
 def get_ratings_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
@@ -146,6 +152,7 @@ def get_ratings_timeframe():
         return res
 
 @app.post("/api/quantity-trends")
+@login_required
 def get_quantity_trends():
     with db_session.connection() as conn:
         body = request.get_json()
@@ -197,11 +204,14 @@ def retrieve_product_lines():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Users.get(user_id)
+    return Users.query.get(user_id)
 
 @app.after_request
 def apply_headers(res):
     res.headers.add("Access-Control-Allow-Origin", os.getenv("WHITELISTED"))
+    res.headers.add("Access-Control-Allow-Credentials", "true")
+    res.headers.add("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+    res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
     return res
 
 @app.teardown_appcontext

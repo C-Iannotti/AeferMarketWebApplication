@@ -1,5 +1,6 @@
 import React from "react"
 import axios from "axios"
+import { withWrapper } from "./componentWrapper.js"
 
 class Login extends React.Component {
     constructor(props) {
@@ -21,6 +22,7 @@ class Login extends React.Component {
         })
         .then(res => {
             console.log(res);
+            this.props.navigate("/")
         })
         .catch(err => {
             console.error(err);
@@ -44,4 +46,4 @@ class Login extends React.Component {
     }
 }
 
-export default Login;
+export default withWrapper(Login);
