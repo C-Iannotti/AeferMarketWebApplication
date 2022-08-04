@@ -1,62 +1,30 @@
 import React from 'react';
-import axios from "axios";
 import { withWrapper } from "./componentWrapper.js"
+import {
+    authenticate,
+    getSalesData,
+    getRatingsData,
+    getQuantityData,
+    getProductLines
+} from "./utils.js"
 
 class Home extends React.Component {
     constructor(props) {
         super(props)
         this.state = {}
-        this.getSalesData = this.getSalesData.bind(this);
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
-        this.getRatingsData = this.getRatingsData.bind(this);
         this.handleGetRatingsData = this.handleGetRatingsData.bind(this);
-        this.getQuantityData = this.getQuantityData.bind(this);
         this.handleGetQuantityData = this.handleGetQuantityData.bind(this);
-        this.getProductLines = this.getProductLines.bind(this);
+        this.authenticate = authenticate.bind(this);
+        this.getSalesData = getSalesData.bind(this);
+        this.getRatingsData = getRatingsData.bind(this);
+        this.getQuantityData = getQuantityData.bind(this);
+        this.getProductLines = getProductLines.bind(this);
     }
 
     componentDidMount() {
         this.getProductLines();
-        this.authenticate();
-    }
-
-    authenticate() {
-        axios({
-            method: "post",
-            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_AUTHENTICATE_PATH"],
-            withCredentials: true
-        })
-        .then(res => {
-            console.log(res)
-            this.setState({
-                authenticated: res.data.isAuthenticated,
-                username: res.data.username
-            })
-        })
-        .catch(err => {
-            console.error(err)
-            this.props.navigate("/login")
-        })
-    }
-
-    getSalesData(begDate=undefined, endDate=undefined, productLine=undefined) {
-        axios({
-            method: "post",
-            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
-            data: {
-                begDate,
-                endDate,
-                productLine
-            },
-            withCredentials: true
-        })
-        .then(res => {
-            console.log(res)
-            this.setState({sales: res.data})
-        })
-        .catch(err => {
-            console.error(err)
-        });
+        this.authenticate(this.props.navigate);
     }
 
     handleGetSalesData() {
@@ -66,26 +34,6 @@ class Home extends React.Component {
         this.getSalesData(begDate, endDate, productLine);
     }
 
-    getRatingsData(begDate=undefined, endDate=undefined, productLine=undefined) {
-        axios({
-            method: "post",
-            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_RATINGS_TIMEFRAME_PATH"],
-            data: {
-                begDate,
-                endDate,
-                productLine
-            },
-            withCredentials: true
-        })
-        .then(res => {
-            console.log(res)
-            this.setState({ratings: res.data})
-        })
-        .catch(err => {
-            console.error(err)
-        });
-    }
-
     handleGetRatingsData() {
         let begDate = document.getElementById("ratings-beg-date-input").value;
         let endDate = document.getElementById("ratings-end-date-input").value;
@@ -93,45 +41,11 @@ class Home extends React.Component {
         this.getRatingsData(begDate, endDate, productLine);
     }
 
-    getQuantityData(begDate=undefined, endDate=undefined, productLine=undefined) {
-        axios({
-            method: "post",
-            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_QUANTITY_TRENDS_PATH"],
-            data: {
-                begDate,
-                endDate,
-                productLine
-            },
-            headers: {
-                "Access-Control-Allow-Credentials": true
-            },
-            withCredentials: true
-        })
-        .then(res => {
-            console.log(res)
-            this.setState({quantity: res.data})
-        })
-        .catch(err => {
-            console.error(err)
-        });
-    }
-
     handleGetQuantityData() {
         let begDate = document.getElementById("quantity-beg-date-input").value;
         let endDate = document.getElementById("quantity-end-date-input").value;
         let productLine = document.getElementById("quantity-product-line-input").value;
         this.getQuantityData(begDate, endDate, productLine);
-    }
-
-    getProductLines() {
-        axios({
-            method: "post",
-            url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_PRODUCT_LINES_PATH"]
-        })
-        .then(res => {
-            console.log(res)
-            this.setState({ productLines: res.data.productLines})
-        })
     }
 
     render() {

@@ -211,7 +211,7 @@ def apply_headers(res):
     res.headers.add("Access-Control-Allow-Origin", os.getenv("WHITELISTED"))
     res.headers.add("Access-Control-Allow-Credentials", "true")
     res.headers.add("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
-    res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+    res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Allow-Credentials")
     return res
 
 @app.teardown_appcontext
