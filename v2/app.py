@@ -3,7 +3,7 @@ import datetime
 from dateutil import parser, relativedelta
 from flask import Flask, send_from_directory, make_response, request, session
 from flask_cors import CORS
-from flask_login import LoginManager, login_user, current_user, login_required
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user
 from database import db_session, init_db
 from models import Sales, Users
 from dotenv import load_dotenv
@@ -50,6 +50,14 @@ def login():
         login_user(user, duration=datetime.timedelta(minutes=30))
         res = make_response({ "message": "Logged in"})
         return res
+
+@app.post("/api/logout")
+@login_required
+def logout():
+    logout_user()
+    res = make_response({ "message": "Logged out user" })
+    return res
+
 
 @app.post("/api/authenticate")
 def authenticate():
@@ -196,7 +204,7 @@ def get_quantity_trends():
 def retrieve_product_lines():
     with db_session.connection() as conn:
         results = {"productLines": []}
-        query_results = conn.execute("""SELECT DISTINCT "ProductLine" FROM "Sales" """)
+        query_results = conn.execute("""SELECT DISTINCT "ProductLine" FROM "Sales" ORDER BY "ProductLine";""")
         for line in query_results:
             results["productLines"].append(line[0])
         res = make_response(results)

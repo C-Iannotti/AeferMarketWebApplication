@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+    borderColors,
+    backgroundColors
+} from "./graphColors.js"
 
 const SERVER_URL = process.env["REACT_APP_SERVER_URL"];
 
@@ -91,6 +95,50 @@ export function getProductLines() {
     })
     .then(res => {
         console.log(res)
-        this.setState({ productLines: res.data.productLines})
+        let productColors = {}
+        for (let i = 0; i < res.data.productLines.length; i++) {
+            productColors[res.data.productLines[i]] = {
+                borderColor: borderColors[i],
+                backgroundColor: backgroundColors[i]
+            }
+        }
+        this.setState({ productLines: res.data.productLines, productColors})
+    })
+    .catch(err => {
+        console.error(err)
+    })
+}
+
+export function login(username, password, navigate) {
+    axios({
+        method: "post",
+        url: process.env["REACT_APP_SERVER_URL"] + process.env["REACT_APP_LOGIN_PATH"],
+        data: {
+            username,
+            password
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        console.log(res);
+        navigate("/")
+    })
+    .catch(err => {
+        console.error(err);
+    })
+}
+
+export function logout(navigate) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_LOGOUT_PATH"],
+        withCredentials: true
+    })
+    .then(res => {
+        console.log(res)
+        this.props.navigate("/login")
+    })
+    .catch(err => {
+        console.error(err)
     })
 }
