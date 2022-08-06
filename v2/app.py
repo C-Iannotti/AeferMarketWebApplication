@@ -105,14 +105,18 @@ def get_sales_timeframe():
             SELECT "ProductLine", "Gender", SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
-            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
             GROUP BY "ProductLine", "Gender"
-            ORDER BY "ProductLine" ASC, GrossIncome DESC;
+            ORDER BY "ProductLine", GrossIncome DESC;
         """)
         for item in query_results:
             if item[0] not in results:
                 results[item[0]] = {}
+                results[item[0]]["totalQuantity"] = 0
+                results[item[0]]["totalIncome"] = 0
             results[item[0]][item[1]] = { "quantity": item[2], "grossIncome": float(item[3])}
+            results[item[0]]["totalQuantity"] += item[2]
+            results[item[0]]["totalIncome"] += float(item[3])
         res = make_response(results)
         return res
 

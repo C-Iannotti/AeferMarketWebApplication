@@ -25,7 +25,7 @@ export function authenticate(navigate) {
     })
 };
 
-export function getSalesData(begDate=undefined, endDate=undefined, productLine=undefined) {
+export function getSalesData(begDate=undefined, endDate=undefined, productLine=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
@@ -37,11 +37,10 @@ export function getSalesData(begDate=undefined, endDate=undefined, productLine=u
         withCredentials: true
     })
     .then(res => {
-        console.log(res)
-        this.setState({sales: res.data})
+        callback(null, res)
     })
     .catch(err => {
-        console.error(err)
+        callback(err)
     });
 };
 

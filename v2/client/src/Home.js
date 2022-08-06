@@ -1,13 +1,10 @@
 import React from 'react';
+import $ from "jquery";
 import { withWrapper } from "./componentWrapper.js"
+import Chart from "chart.js/auto"
 import {
-    Chart as ChartJS,
-    ArcElement,
-    Tooltip,
-    Legend
-} from "chart.js"
-import {
-    Pie
+    Pie,
+    Bar
 } from "react-chartjs-2"
 import {
     authenticate,
@@ -17,8 +14,6 @@ import {
     getProductLines,
     logout
 } from "./utils.js"
-
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 class Home extends React.Component {
     constructor(props) {
@@ -44,8 +39,62 @@ class Home extends React.Component {
     handleGetSalesData() {
         let begDate = document.getElementById("sales-beg-date-input").value;
         let endDate = document.getElementById("sales-end-date-input").value;
-        //let productLine = document.getElementById("sales-product-line-input").value;
-        this.getSalesData(begDate, endDate);
+        let productLine = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
+        this.getSalesData(begDate, endDate, productLine, (err, res) => {
+            if (err) console.error(err);
+            else {
+                productLine = productLine.length === 0 ? this.state.productLines : productLine;
+
+                let data1 = {}
+                let data2 = {}
+                let data3 = {}
+                let data4 = {}
+
+                data1["labels"] = productLine;
+                data2["labels"] = productLine;
+                data3["labels"] = productLine;
+                data4["labels"] = productLine;
+
+                let backgroundColor = []
+                let borderColor = []
+                let grossIncome = []
+                let quantity = []
+                let incomePerItem = []
+                for (const item of productLine) {
+                    backgroundColor.push(this.state.productColors[item].backgroundColor)
+                    borderColor.push(this.state.productColors[item].borderColor)
+                    grossIncome.push(res.data[item].totalIncome)
+                    quantity.push(res.data[item].totalQuantity)
+                    incomePerItem.push(res.data[item].totalIncome / res.data[item].totalQuantity)
+                }
+                data1["datasets"] = [{
+                    label: "Gross Income",
+                    backgroundColor,
+                    borderColor,
+                    data: grossIncome,
+                    borderWidth: 1
+                }]
+                data2["datasets"] = [{
+                    label: "Quantity",
+                    backgroundColor,
+                    borderColor,
+                    data: quantity,
+                    borderWidth: 1
+                }]
+                data3["datasets"] = [{
+                    label: "Gross Income per Item",
+                    backgroundColor,
+                    borderColor,
+                    data: incomePerItem,
+                    borderWidth: 1
+                }]
+                this.setState({
+                    graph1: data1,
+                    graph2: data2,
+                    graph3: data3
+                })
+            }
+        });
     }
 
     handleGetRatingsData() {
@@ -68,49 +117,41 @@ class Home extends React.Component {
 
     render() {
         if (this.state.authenticated) {
-            let data = {}
-            if (this.state.sales) {
-                data["labels"] = this.state.productLines;
-                let backgroundColor = []
-                let borderColor = []
-                let grossIncome = []
-                for (const item of this.state.productLines) {
-                    console.log(item)
-                    backgroundColor.push(this.state.productColors[item].backgroundColor)
-                    borderColor.push(this.state.productColors[item].borderColor)
-                    grossIncome.push(this.state.sales[item].Female.grossIncome + this.state.sales[item].Male.grossIncome)
-                }
-                console.log(this.state.productLines)
-                console.log(backgroundColor)
-                console.log(borderColor)
-                console.log(grossIncome)
-                data["datasets"] = [{
-                    label: "Gross Income",
-                    backgroundColor,
-                    borderColor,
-                    data: grossIncome,
-                    borderWidth: 1
-                }]
-            }
-            console.log(data)
             return (
                 <div id="home-page" className="home-page">
                     <p>This do be the home page</p>
                     <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
                     <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
-                    {/*<select id="sales-product-line-input" name="sales-product-line-input">
-                        <option value="">Default</option>
+                    <select id="sales-product-line-input" name="sales-product-line-input" multiple>
                         {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x + "_sales"} value={x}>{x}</option>
+                            return <option key={x + "_sales"} id={x + "_sales"} value={x} onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.target.selected= !e.target.selected
+                                }}>{x}</option>
                         })}
-                    </select>*/}
+                    </select>
                     <button type="button" onClick={this.handleGetSalesData}>Submit</button>
                     <br />
-                    {this.state.sales && 
-                        <div>
-                            <Pie data={data} />
-                            {JSON.stringify(this.state.sales)}
-                        </div>}
+                    <div className="sales-graph-group1">
+                        {this.state.graph1 &&
+                            <div className="graph1">
+                                <Pie data={this.state.graph1}
+                                    options={{plugins: {legend: false}}}/>
+                            </div>
+                        }
+                        {this.state.graph2 &&
+                            <div className="graph1">
+                                <Pie data={this.state.graph2}
+                                    options={{plugins: {legend: false}}}/>
+                            </div>
+                        }
+                    </div>
+                    {this.state.graph3 &&
+                        <div className="graph3">
+                            <Bar data={this.state.graph3}
+                                options={{plugins: {legend: false}}}/>
+                        </div>
+                    }
                     <br />
                     <br />
                     <input id="ratings-beg-date-input" name="ratings-beg-date-input" type="date" />
