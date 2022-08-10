@@ -109,14 +109,15 @@ def get_sales_timeframe():
             GROUP BY "ProductLine", "Gender"
             ORDER BY "ProductLine", GrossIncome DESC;
         """)
-        for item in query_results:
-            if item[0] not in results:
-                results[item[0]] = {}
-                results[item[0]]["totalQuantity"] = 0
-                results[item[0]]["totalIncome"] = 0
-            results[item[0]][item[1]] = { "quantity": item[2], "grossIncome": float(item[3])}
-            results[item[0]]["totalQuantity"] += item[2]
-            results[item[0]]["totalIncome"] += float(item[3])
+        for line in query_results:
+            if line[0] not in results:
+                results[line[0]] = {}
+                results[line[0]]["totalQuantity"] = 0
+                results[line[0]]["totalIncome"] = 0
+            line_1 = line[1] if line[1] is not None else "Unspecified"
+            results[line[0]][line_1] = { "quantity": line[2], "grossIncome": float(line[3])}
+            results[line[0]]["totalQuantity"] += line[2]
+            results[line[0]]["totalIncome"] += float(line[3])
         res = make_response(results)
         return res
 
@@ -145,21 +146,26 @@ def get_ratings_timeframe():
             except:
                 errors.append("Passed Invalid End Date")
                 body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+
+        if "productLine" not in body or not body["productLine"]:
+            body["productLine"] = []
+        print(body)
         results = {}
         query_results = conn.execute(f"""
-            SELECT "ProductLine", "Gender", "Date", AVG("Rating") as "Rating"
+            SELECT {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date", AVG("Rating") as "Rating"
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
-            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""}
-            GROUP BY "ProductLine", "Gender", "Date"
-            ORDER BY "ProductLine", "Gender", "Date";
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            GROUP BY {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date"
+            ORDER BY {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date";
         """)
 
         for line in query_results:
-            if line[0] not in results: results[line[0]] = {}
-            if line[1] is None: line[1] = "Unspecified"
-            if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
-            results[line[0]][line[1]][str(line[2])] = line[3]
+            line_0 = line[0] if line[0] is not None else "Unspecified"
+            if line_0 not in results: results[line_0] = {}
+            results[line_0][str(line[1])] = line[2]
+        results["begDate"] = body["begDate"]
+        results["endDate"] = body["endDate"]
         res = make_response(results)
         return res
 
@@ -199,8 +205,9 @@ def get_quantity_trends():
         """)
         for line in query_results:
             if line[0] not in results: results[line[0]] = {}
-            if line[1] not in results[line[0]]: results[line[0]][line[1]] = {}
-            results[line[0]][line[1]][str(line[2])] = line[3]
+            line_1 = line[1] if line[1] is not None else "Unspecified"
+            if line_1 not in results[line[0]]: results[line[0]][line_1] = {}
+            results[line[0]][line_1][str(line[2])] = line[3]
         res = make_response(results)
         return res
 
@@ -211,6 +218,16 @@ def retrieve_product_lines():
         query_results = conn.execute("""SELECT DISTINCT "ProductLine" FROM "Sales" ORDER BY "ProductLine";""")
         for line in query_results:
             results["productLines"].append(line[0])
+        res = make_response(results)
+        return res
+
+@app.post("/api/retrieve-genders")
+def retrieve_genders():
+    with db_session.connection() as conn:
+        results = {"genders": []}
+        query_results = conn.execute("""SELECT DISTINCT "Gender" FROM "Sales" ORDER BY "Gender";""")
+        for line in query_results:
+            results["genders"].append(line[0] if line[0] is not None else "Unspecified")
         res = make_response(results)
         return res
 

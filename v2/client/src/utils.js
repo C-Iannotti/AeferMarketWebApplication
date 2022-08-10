@@ -44,7 +44,7 @@ export function getSalesData(begDate=undefined, endDate=undefined, productLine=u
     });
 };
 
-export function getRatingsData(begDate=undefined, endDate=undefined, productLine=undefined) {
+export function getRatingsData(begDate=undefined, endDate=undefined, productLine=undefined, callback) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_RATINGS_TIMEFRAME_PATH"],
@@ -56,11 +56,10 @@ export function getRatingsData(begDate=undefined, endDate=undefined, productLine
         withCredentials: true
     })
     .then(res => {
-        console.log(res)
-        this.setState({ratings: res.data})
+        callback(null, res);
     })
     .catch(err => {
-        console.error(err)
+        callback(err);
     });
 };
 
@@ -87,25 +86,30 @@ export function getQuantityData(begDate=undefined, endDate=undefined, productLin
     });
 };
 
-export function getProductLines() {
+export function getProductLines(callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_PRODUCT_LINES_PATH"]
     })
     .then(res => {
-        console.log(res)
-        let productColors = {}
-        for (let i = 0; i < res.data.productLines.length; i++) {
-            productColors[res.data.productLines[i]] = {
-                borderColor: borderColors[i],
-                backgroundColor: backgroundColors[i]
-            }
-        }
-        this.setState({ productLines: res.data.productLines, productColors})
+        callback(null, res)
     })
     .catch(err => {
-        console.error(err)
+        callback(err)
+    });
+}
+
+export function getGenders(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_GENDER_PATH"]
     })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
 }
 
 export function login(username, password, navigate) {
