@@ -152,23 +152,24 @@ def get_ratings_timeframe():
                 errors.append("Passed Invalid End Date")
                 body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
 
-        if "productLine" not in body or not body["productLine"]:
-            body["productLine"] = []
-        print(body)
+        if "separateOn" in body and body["separateOn"].lower() == "gender":
+            body["separateOn"] = '"Gender"'
+        else:
+            body["separateOn"] = '"CustomerType"' 
         results = {}
         query_results = conn.execute(f"""
-            SELECT {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date", AVG("Rating") as "Rating"
+            SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date", AVG("Rating") as "Rating"
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
-            GROUP BY {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date"
-            ORDER BY {'"Gender", ' if len(body["productLine"]) == 1 else '"ProductLine", '}"Date";
+            GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
+            ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
         """)
 
         for line in query_results:
             line_0 = line[0] if line[0] is not None else "Unspecified"
             if line_0 not in results: results[line_0] = {}
-            results[line_0][str(line[1])] = line[2]
+            results[line_0][str(line[1])] = float(line[2])
         results["begDate"] = body["begDate"]
         results["endDate"] = body["endDate"]
         res = make_response(results)
@@ -199,20 +200,27 @@ def get_quantity_trends():
             except:
                 errors.append("Passed Invalid End Date")
                 body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+
+        if "separateOn" in body and body["separateOn"].lower() == "gender":
+            body["separateOn"] = '"Gender"'
+        else:
+            body["separateOn"] = '"CustomerType"'
+
         results = {}
         query_results = conn.execute(f"""
-            SELECT "CustomerType", "Gender", "Date", SUM("Quantity")
+            SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date", SUM("Quantity")
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
-            {'AND "ProductLine"=' + "'" + body["productLine"] + "'" if "productLine" in body and body["productLine"] else ""} 
-            GROUP BY "CustomerType", "Gender", "Date"
-            ORDER BY "CustomerType", "Gender", "Date";
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
+            ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
         """)
         for line in query_results:
-            if line[0] not in results: results[line[0]] = {}
-            line_1 = line[1] if line[1] is not None else "Unspecified"
-            if line_1 not in results[line[0]]: results[line[0]][line_1] = {}
-            results[line[0]][line_1][str(line[2])] = line[3]
+            line_0 = line[0] if line[0] is not None else "Unspecified"
+            if line_0 not in results: results[line_0] = {}
+            results[line_0][str(line[1])] = line[2]
+        results["begDate"] = body["begDate"]
+        results["endDate"] = body["endDate"]
         res = make_response(results)
         return res
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import $, { get } from "jquery";
 import { withWrapper } from "./componentWrapper.js"
 import Chart from "chart.js/auto"
 import {
@@ -25,8 +24,6 @@ class Home extends React.Component {
         super(props)
         this.state = {}
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
-        this.handleGetRatingsData = this.handleGetRatingsData.bind(this);
-        this.handleGetQuantityData = this.handleGetQuantityData.bind(this);
         this.handleLogout = this.handleLogout.bind(this);
         this.authenticate = authenticate.bind(this);
         this.getSalesData = getSalesData.bind(this);
@@ -50,36 +47,33 @@ class Home extends React.Component {
                 this.setState({ productLines: res.data.values, productColors});
             }
         });
-        this.getColumnValues("Gender", (err, res) => {
-            if (err) console.error(err);
+
+        this.authenticate((err, res) => {
+            if (err) {
+                this.props.navigate("/login");
+            }
             else {
-                this.setState({genders: res.data.values});
+                this.setState({
+                    authenticated: res.data.isAuthenticated,
+                    username: res.data.username
+                });
             }
         });
-        this.getColumnValues("CustomerType", (err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res.data)
-                this.setState({customerTypes: res.data.values}, () => console.log(this.state));
-            }
-        });
-        this.authenticate(this.props.navigate);
     }
 
     handleGetSalesData() {
         let begDate = document.getElementById("sales-beg-date-input").value;
         let endDate = document.getElementById("sales-end-date-input").value;
-        let productLine = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
-        let separateOn = "customertype";
+        let productLines = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
+        let separateOn = document.getElementById("sales-separate-on-input").value;
         this.getColumnValues(separateOn, (err, res) => {
             if (err) console.error(err);
             else {
                 let categoryLabels = res.data.values;
-                this.getSalesData(begDate, endDate, productLine, separateOn, (err, res) => {
+                this.getSalesData(begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        console.log(res)
-                        productLine = productLine.length === 0 ? this.state.productLines : productLine;
+                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
         
                         let data1 = {}
                         let data2 = {}
@@ -136,8 +130,6 @@ class Home extends React.Component {
                             })
                         }
         
-                        console.log(data3)
-        
                         this.setState({
                             graph1: data1,
                             graph2: data2,
@@ -145,23 +137,11 @@ class Home extends React.Component {
                         })
                     }
                 });
-            }
-        })
-    }
 
-    handleGetRatingsData() {
-        let begDate = document.getElementById("ratings-beg-date-input").value;
-        let endDate = document.getElementById("ratings-end-date-input").value;
-        let productLine = Array.from(document.getElementById("ratings-product-line-input").selectedOptions).map(({value}) => value);
-        let separateOn = "Gender"
-        this.getColumnValues(separateOn, (err, res) => {
-            if (err) console.error(err);
-            else {
-                let categoryLabels = res.data.values;
-                this.getRatingsData(begDate, endDate, productLine, (err, res) => {
+                this.getRatingsData(begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        productLine = productLine.length === 0 ? this.state.productLines : productLine;
+                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
         
                         let data = {};
                         data["labels"] = [];
@@ -193,19 +173,53 @@ class Home extends React.Component {
                         this.setState({graph4: data})
                     }
                 });
-            }
-        })
-    }
 
-    handleGetQuantityData() {
-        let begDate = document.getElementById("quantity-beg-date-input").value;
-        let endDate = document.getElementById("quantity-end-date-input").value;
-        let productLine = document.getElementById("quantity-product-line-input").value;
-        this.getQuantityData(begDate, endDate, productLine);
+                this.getQuantityData(begDate, endDate, productLines, separateOn, (err, res) => {
+                    if (err) console.error(err);
+                    else {
+                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
+                        let data = {};
+                        data["labels"] = [];
+                        console.log(res.data)
+                        let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
+                        let datasetsData = []
+                        for (let i = 0; i < datasetsLabels.length; i++) {
+                            datasetsData.push([])
+                        }
+                        for (let x = new Date(res.data.begDate), y = new Date(res.data.endDate); x <= y; x.setDate(x.getDate() + 1)) {
+                            let temp = x.toISOString().split("T")[0]
+                            data["labels"].push(temp)
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : null);
+                            }
+                        }
+        
+                        data["datasets"] = []
+                        for (let i = 0; i < datasetsLabels.length; i++) {
+                            data["datasets"].push({
+                                label: datasetsLabels[i],
+                                backgroundColor: backgroundColors[i],
+                                borderColor: borderColors[i],
+                                data: datasetsData[i],
+                                borderWidth: 1,
+                                spanGaps: true
+                            })
+                        }
+        
+                        this.setState({graph5: data})
+                    }
+                });
+            }
+        });
     }
 
     handleLogout() {
-        this.logout(this.props.navigate);
+        this.logout((err, res) => {
+            if (err) console.error(err);
+            else {
+                this.props.navigate("/login");
+            }
+        });
     }
 
     render() {
@@ -215,6 +229,10 @@ class Home extends React.Component {
                     <p>This do be the home page</p>
                     <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
                     <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
+                    <select id="sales-separate-on-input" name="sales-separate-on-input">
+                        <option value="gender">Gender</option>
+                        <option value="customertype">Customer Type</option>
+                    </select>
                     <select id="sales-product-line-input" name="sales-product-line-input" multiple>
                         {this.state.productLines && this.state.productLines.map(x => {
                             return <option key={x + "_sales"} id={x + "_sales"} value={x} onMouseDown={(e) => {
@@ -246,19 +264,6 @@ class Home extends React.Component {
                         </div>
                     }
                     <br />
-                    <br />
-                    <input id="ratings-beg-date-input" name="ratings-beg-date-input" type="date" />
-                    <input id="ratings-end-date-input" name="ratings-end-date-input" type="date" />
-                    <select id="ratings-product-line-input" name="ratings-product-line-input" multiple>
-                        {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x + "ratings"} id={x + "ratings"} value={x} onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.target.selected= !e.target.selected
-                                }}>{x}</option>
-                        })}
-                    </select>
-                    <button type="button" onClick={this.handleGetRatingsData}>Submit</button>
-                    <br />
                     {this.state.graph4 &&
                         <div className="graph4">
                             <Line data={this.state.graph4}
@@ -267,17 +272,12 @@ class Home extends React.Component {
                     }
                     <br />
                     <br />
-                    <input id="quantity-beg-date-input" name="quantity-beg-date-input" type="date" />
-                    <input id="quantity-end-date-input" name="quantity-end-date-input" type="date" />
-                    <select id="quantity-product-line-input" name="quantity-product-line-input">
-                        <option value="">Default</option>
-                        {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x + "_quantity"} value={x}>{x}</option>
-                        })}
-                    </select>
-                    <button type="button" onClick={this.handleGetQuantityData}>Submit</button>
-                    <br />
-                    {this.state.quantity && JSON.stringify(this.state.quantity)}
+                    {this.state.graph5 &&
+                        <div className="graph4">
+                            <Line data={this.state.graph5}
+                                options={{plugins: {legend: false}}}/>
+                        </div>
+                    }
                     <br />
                     <br />
                     <button type="button" id="logout-button" onClick={this.handleLogout}>Logout</button>

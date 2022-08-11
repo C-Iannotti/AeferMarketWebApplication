@@ -15,7 +15,12 @@ class Login extends React.Component {
     handleLogin() {
         let username = document.getElementById("username-input").value;
         let password = document.getElementById("password-input").value;
-        this.login(username, password, this.props.navigate);
+        this.login(username, password, (err, res) => {
+            if (err) console.error(err);
+            else {
+                this.props.navigate("/");
+            }
+        });
     }
 
     render() {
