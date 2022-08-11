@@ -7,6 +7,7 @@ export const withWrapper = Component => {
         return (
             <Component
                 navigate={useNavigate()}
+                {...props}
             />
         );
     };

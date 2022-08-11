@@ -11,26 +11,22 @@ import {
     Line
 } from "react-chartjs-2"
 import {
-    authenticate,
     getSalesData,
     getRatingsData,
     getQuantityData,
-    getColumnValues,
-    logout
+    getColumnValues
 } from "./utils.js"
 
 class Home extends React.Component {
     constructor(props) {
-        super(props)
-        this.state = {}
+        super(props);
+        this.state = {};
+
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
-        this.handleLogout = this.handleLogout.bind(this);
-        this.authenticate = authenticate.bind(this);
         this.getSalesData = getSalesData.bind(this);
         this.getRatingsData = getRatingsData.bind(this);
         this.getQuantityData = getQuantityData.bind(this);
         this.getColumnValues = getColumnValues.bind(this);
-        this.logout = logout.bind(this);
     }
 
     componentDidMount() {
@@ -47,18 +43,7 @@ class Home extends React.Component {
                 this.setState({ productLines: res.data.values, productColors});
             }
         });
-
-        this.authenticate((err, res) => {
-            if (err) {
-                this.props.navigate("/login");
-            }
-            else {
-                this.setState({
-                    authenticated: res.data.isAuthenticated,
-                    username: res.data.username
-                });
-            }
-        });
+        this.props.checkLogin(this.props.navigate);
     }
 
     handleGetSalesData() {
@@ -180,7 +165,6 @@ class Home extends React.Component {
                         let productLine = productLines.length === 0 ? this.state.productLines : productLines;
                         let data = {};
                         data["labels"] = [];
-                        console.log(res.data)
                         let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
                         let datasetsData = []
                         for (let i = 0; i < datasetsLabels.length; i++) {
@@ -213,17 +197,8 @@ class Home extends React.Component {
         });
     }
 
-    handleLogout() {
-        this.logout((err, res) => {
-            if (err) console.error(err);
-            else {
-                this.props.navigate("/login");
-            }
-        });
-    }
-
     render() {
-        if (this.state.authenticated) {
+        if (this.props.authenticated) {
             return (
                 <div id="home-page" className="home-page">
                     <p>This do be the home page</p>
@@ -278,9 +253,6 @@ class Home extends React.Component {
                                 options={{plugins: {legend: false}}}/>
                         </div>
                     }
-                    <br />
-                    <br />
-                    <button type="button" id="logout-button" onClick={this.handleLogout}>Logout</button>
                 </div>
             )
         }
