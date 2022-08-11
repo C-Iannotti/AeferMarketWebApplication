@@ -25,14 +25,15 @@ export function authenticate(navigate) {
     })
 };
 
-export function getSalesData(begDate=undefined, endDate=undefined, productLine=undefined, callback=()=>{return}) {
+export function getSalesData(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
         data: {
             begDate,
             endDate,
-            productLine
+            productLine,
+            separateOn
         },
         withCredentials: true
     })
@@ -86,23 +87,13 @@ export function getQuantityData(begDate=undefined, endDate=undefined, productLin
     });
 };
 
-export function getProductLines(callback=()=>{return}) {
+export function getColumnValues(column, callback=()=>{return}) {
     axios({
         method: "post",
-        url: SERVER_URL + process.env["REACT_APP_PRODUCT_LINES_PATH"]
-    })
-    .then(res => {
-        callback(null, res)
-    })
-    .catch(err => {
-        callback(err)
-    });
-}
-
-export function getGenders(callback=()=>{return}) {
-    axios({
-        method: "post",
-        url: SERVER_URL + process.env["REACT_APP_GENDER_PATH"]
+        url: SERVER_URL + process.env["REACT_APP_COLUMN_VALUES_PATH"],
+        data: {
+            column
+        }
     })
     .then(res => {
         callback(null, res);

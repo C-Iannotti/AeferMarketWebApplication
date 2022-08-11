@@ -99,14 +99,19 @@ def get_sales_timeframe():
             except:
                 errors.append("Passed Invalid End Date")
                 body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+
+        if "separateOn" in body and body["separateOn"].lower() == "gender":
+            body["separateOn"] = '"Gender"'
+        else:
+            body["separateOn"] = '"CustomerType"'
         
         results = {}
         query_results = conn.execute(f"""
-            SELECT "ProductLine", "Gender", SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
+            SELECT "ProductLine", {body["separateOn"]}, SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
-            GROUP BY "ProductLine", "Gender"
+            GROUP BY "ProductLine", {body["separateOn"]}
             ORDER BY "ProductLine", GrossIncome DESC;
         """)
         for line in query_results:
@@ -211,23 +216,20 @@ def get_quantity_trends():
         res = make_response(results)
         return res
 
-@app.post("/api/retrieve-product-lines")
-def retrieve_product_lines():
+@app.post("/api/retrieve-column-values")
+def retrieve_column_values():
     with db_session.connection() as conn:
-        results = {"productLines": []}
-        query_results = conn.execute("""SELECT DISTINCT "ProductLine" FROM "Sales" ORDER BY "ProductLine";""")
+        body = request.get_json()
+        results = {"values": []}
+        if "column" in body and body["column"].lower() == "customertype":
+            body["column"] = 'CustomerType'
+        elif "column" in body and body["column"].lower() == "gender":
+            body["column"] = 'Gender'
+        else:
+            body["column"] = 'ProductLine'
+        query_results = conn.execute(f"""SELECT DISTINCT "{body["column"]}" FROM "Sales" ORDER BY "{body["column"]}";""")
         for line in query_results:
-            results["productLines"].append(line[0])
-        res = make_response(results)
-        return res
-
-@app.post("/api/retrieve-genders")
-def retrieve_genders():
-    with db_session.connection() as conn:
-        results = {"genders": []}
-        query_results = conn.execute("""SELECT DISTINCT "Gender" FROM "Sales" ORDER BY "Gender";""")
-        for line in query_results:
-            results["genders"].append(line[0] if line[0] is not None else "Unspecified")
+            results["values"].append(line[0] if line[0] is not None else "Unspecified")
         res = make_response(results)
         return res
 
