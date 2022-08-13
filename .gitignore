@@ -1,7 +1,7 @@
-.venv
 __pycache__
 AeferMarketWebApplication.code-workspace
 package-lock.json
 node_modules
 database-queries
 .env
+cenv
