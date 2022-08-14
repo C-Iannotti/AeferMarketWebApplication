@@ -80,6 +80,26 @@ export function getQuantityData(begDate=undefined, endDate=undefined, productLin
     });
 };
 
+export function getQuantityPerTimeUnit(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_QUANTITY_PER_TIMEUNIT_PATH"],
+        data: {
+            begDate,
+            endDate,
+            productLine,
+            separateOn
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+}
+
 export function getColumnValues(column, callback=()=>{return}) {
     axios({
         method: "post",

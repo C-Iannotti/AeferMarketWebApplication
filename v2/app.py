@@ -69,11 +69,6 @@ def authenticate():
     else:
         return "", 401
 
-@app.post("/api/first-sale")
-@login_required
-def get_first_sale():
-    return Sales.query.first().toJSON()
-
 @app.post("/api/sales-timeframe")
 @login_required
 def get_sales_timeframe():
@@ -221,6 +216,58 @@ def get_quantity_trends():
             results[line_0][str(line[1])] = line[2]
         results["begDate"] = body["begDate"]
         results["endDate"] = body["endDate"]
+        res = make_response(results)
+        return res
+
+@app.post("/api/quantity-per-half-hour")
+def quantity_per_hour():
+    with db_session.connection() as conn:
+        body = request.get_json()
+        errors = []
+        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
+            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
+        elif "endDate" not in body or not body["endDate"]:
+            body["endDate"] = datetime.date.today()
+        else:
+            try:
+                body["endDate"] = parser.parse(body["endDate"]).date()
+            except:
+                errors.append("Passed Invalid End Date")
+                body["endDate"] = datetime.date.today()
+        
+        if "begDate" not in body or not body["begDate"]:
+            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+        else:
+            try:
+                body["begDate"] = parser.parse(body["begDate"]).date()
+            except:
+                errors.append("Passed Invalid End Date")
+                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+
+        if "separateOn" in body and body["separateOn"].lower() == "gender":
+            body["separateOn"] = '"Gender"'
+        else:
+            body["separateOn"] = '"CustomerType"'
+
+        results = {}
+        query_results = conn.execute(f"""
+            SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time") AS new_hour, FLOOR(EXTRACT(MINUTE FROM "Time") / 30) * 30 AS new_minute, SUM("Quantity")
+            FROM "Sales"
+            WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time"), FLOOR(EXTRACT(MINUTE FROM "Time") / 30)
+            ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'};
+        """)
+        min_hour = 24
+        max_hour = 0
+        for line in query_results:
+            line_0 = line[0] if line[0] is not None else "Unspecified"
+            if line_0 not in results: results[line_0] = {}
+            min_hour = min(min_hour, int(line[1]))
+            max_hour = max(max_hour, int(line[1]))
+            results[line_0][str(datetime.time(hour=int(line[1]), minute=int(line[2])))] = line[3]
+        results["minHour"] = min_hour
+        results["maxHour"] = max_hour
         res = make_response(results)
         return res
 

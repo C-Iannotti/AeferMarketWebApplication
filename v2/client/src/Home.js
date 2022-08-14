@@ -14,7 +14,8 @@ import {
     getSalesData,
     getRatingsData,
     getQuantityData,
-    getColumnValues
+    getColumnValues,
+    getQuantityPerTimeUnit
 } from "./utils.js"
 
 class Home extends React.Component {
@@ -26,6 +27,7 @@ class Home extends React.Component {
         this.getSalesData = getSalesData.bind(this);
         this.getRatingsData = getRatingsData.bind(this);
         this.getQuantityData = getQuantityData.bind(this);
+        this.getQuantityPerTimeUnit = getQuantityPerTimeUnit.bind(this);
         this.getColumnValues = getColumnValues.bind(this);
     }
 
@@ -193,6 +195,44 @@ class Home extends React.Component {
                         this.setState({graph5: data})
                     }
                 });
+
+                this.getQuantityPerTimeUnit(begDate, endDate, productLines, separateOn, (err, res) => {
+                    if (err) console.error(err);
+                    else {
+                        console.log(res)
+                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
+                        let data = {};
+                        data["labels"] = [];
+                        let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
+                        let datasetsData = []
+                        for (let i = 0; i < datasetsLabels.length; i++) {
+                            datasetsData.push([])
+                        }
+                        for (let i = res.data["minHour"]; i <= res.data["maxHour"]; i++) {
+                            data["labels"].push(i + ":00:00");
+                            data["labels"].push(i + ":30:00");
+                            for (let j = 0; j < datasetsLabels.length; j++) {
+                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i + ":00:00"] ? res.data[datasetsLabels[j]][i + ":00:00"] : 0);
+                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i + ":30:00"] ? res.data[datasetsLabels[j]][i + ":30:00"] : 0);
+                            }
+                        }
+
+                        data["datasets"] = []
+                        for (let i = 0; i < datasetsLabels.length; i++) {
+                            data["datasets"].push({
+                                label: datasetsLabels[i],
+                                backgroundColor: backgroundColors[i],
+                                borderColor: borderColors[i],
+                                data: datasetsData[i],
+                                borderWidth: 1
+                            })
+                        }
+
+                        console.log(data)
+        
+                        this.setState({graph6: data})
+                    }
+                });
             }
         });
     }
@@ -235,6 +275,12 @@ class Home extends React.Component {
                     {this.state.graph3 &&
                         <div className="graph3">
                             <Bar data={this.state.graph3}
+                                options={{plugins: {legend: false}}}/>
+                        </div>
+                    }
+                    {this.state.graph6 &&
+                        <div className="graph3">
+                            <Bar data={this.state.graph6}
                                 options={{plugins: {legend: false}}}/>
                         </div>
                     }
