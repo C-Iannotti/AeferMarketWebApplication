@@ -75,6 +75,10 @@ def get_sales_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
+
+        if "branch" not in body or not body["branch"]:
+            body["branch"] = "A"
+
         if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
         elif "endDate" not in body or not body["endDate"]:
@@ -105,6 +109,7 @@ def get_sales_timeframe():
             SELECT "ProductLine", {body["separateOn"]}, SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
+            {'AND "Branch"=' + "'" + body['branch'] + "'"}
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
             GROUP BY "ProductLine", {body["separateOn"]}
             ORDER BY "ProductLine", GrossIncome DESC;
@@ -127,6 +132,10 @@ def get_ratings_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
+
+        if "branch" not in body or not body["branch"]:
+            body["branch"] = "A"
+
         if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
         elif "endDate" not in body or not body["endDate"]:
@@ -156,6 +165,7 @@ def get_ratings_timeframe():
             SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date", AVG("Rating") as "Rating"
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "Branch"=' + "'" + body['branch'] + "'"}
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
@@ -176,6 +186,10 @@ def get_quantity_trends():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
+
+        if "branch" not in body or not body["branch"]:
+            body["branch"] = "A"
+
         if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
         elif "endDate" not in body or not body["endDate"]:
@@ -206,6 +220,7 @@ def get_quantity_trends():
             SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date", SUM("Quantity")
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "Branch"=' + "'" + body['branch'] + "'"}
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
@@ -224,6 +239,10 @@ def quantity_per_hour():
     with db_session.connection() as conn:
         body = request.get_json()
         errors = []
+
+        if "branch" not in body or not body["branch"]:
+            body["branch"] = "A"
+
         if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
             body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
         elif "endDate" not in body or not body["endDate"]:
@@ -254,6 +273,7 @@ def quantity_per_hour():
             SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time") AS new_hour, FLOOR(EXTRACT(MINUTE FROM "Time") / 30) * 30 AS new_minute, SUM("Quantity")
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "Branch"=' + "'" + body['branch'] + "'"}
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time"), FLOOR(EXTRACT(MINUTE FROM "Time") / 30)
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'};
@@ -277,14 +297,22 @@ def retrieve_column_values():
         body = request.get_json()
         results = {"values": []}
         if "column" in body and body["column"].lower() == "customertype":
-            body["column"] = 'CustomerType'
+            body["column"] = '"CustomerType"'
         elif "column" in body and body["column"].lower() == "gender":
-            body["column"] = 'Gender'
+            body["column"] = '"Gender"'
+        elif "column" in body and body["column"].lower() == "branch":
+            body["column"] = '"Branch", "City"'
         else:
-            body["column"] = 'ProductLine'
-        query_results = conn.execute(f"""SELECT DISTINCT "{body["column"]}" FROM "Sales" ORDER BY "{body["column"]}";""")
+            body["column"] = '"ProductLine"'
+        query_results = conn.execute(f"""SELECT DISTINCT {body["column"]} FROM "Sales" ORDER BY {body["column"]};""")
         for line in query_results:
-            results["values"].append(line[0] if line[0] is not None else "Unspecified")
+            if len(line) > 1:
+                item = []
+                for value in line:
+                    item.append(value)
+                results["values"].append(item)
+            else:
+                results["values"].append(line[0] if line[0] is not None else "Unspecified")
         res = make_response(results)
         return res
 

@@ -20,7 +20,7 @@ export function authenticate(callback=()=>{return}) {
     });
 };
 
-export function getSalesData(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
+export function getSalesData(branch, begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_SALES_TIMEFRAME_PATH"], 
@@ -28,7 +28,8 @@ export function getSalesData(begDate=undefined, endDate=undefined, productLine=u
             begDate,
             endDate,
             productLine,
-            separateOn
+            separateOn,
+            branch
         },
         withCredentials: true
     })
@@ -40,7 +41,7 @@ export function getSalesData(begDate=undefined, endDate=undefined, productLine=u
     });
 };
 
-export function getRatingsData(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
+export function getRatingsData(branch, begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_RATINGS_TIMEFRAME_PATH"],
@@ -48,7 +49,8 @@ export function getRatingsData(begDate=undefined, endDate=undefined, productLine
             begDate,
             endDate,
             productLine,
-            separateOn
+            separateOn,
+            branch
         },
         withCredentials: true
     })
@@ -60,7 +62,7 @@ export function getRatingsData(begDate=undefined, endDate=undefined, productLine
     });
 };
 
-export function getQuantityData(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
+export function getQuantityData(branch, begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_QUANTITY_TRENDS_PATH"],
@@ -68,7 +70,8 @@ export function getQuantityData(begDate=undefined, endDate=undefined, productLin
             begDate,
             endDate,
             productLine,
-            separateOn
+            separateOn,
+            branch
         },
         withCredentials: true
     })
@@ -80,7 +83,7 @@ export function getQuantityData(begDate=undefined, endDate=undefined, productLin
     });
 };
 
-export function getQuantityPerTimeUnit(begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
+export function getQuantityPerTimeUnit(branch, begDate=undefined, endDate=undefined, productLine=undefined, separateOn=undefined, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_QUANTITY_PER_TIMEUNIT_PATH"],
@@ -88,7 +91,8 @@ export function getQuantityPerTimeUnit(begDate=undefined, endDate=undefined, pro
             begDate,
             endDate,
             productLine,
-            separateOn
+            separateOn,
+            branch
         },
         withCredentials: true
     })

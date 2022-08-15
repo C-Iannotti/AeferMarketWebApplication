@@ -45,10 +45,17 @@ class Home extends React.Component {
                 this.setState({ productLines: res.data.values, productColors});
             }
         });
+        this.getColumnValues("branch", (err, res) => {
+            if (err) console.error(err);
+            else{
+                this.setState({ branches: res.data.values });
+            }
+        });
         this.props.checkLogin(this.props.navigate);
     }
 
     handleGetSalesData() {
+        let branch = document.getElementById("sales-branch-input").value;
         let begDate = document.getElementById("sales-beg-date-input").value;
         let endDate = document.getElementById("sales-end-date-input").value;
         let productLines = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
@@ -57,7 +64,7 @@ class Home extends React.Component {
             if (err) console.error(err);
             else {
                 let categoryLabels = res.data.values;
-                this.getSalesData(begDate, endDate, productLines, separateOn, (err, res) => {
+                this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
                         let productLine = productLines.length === 0 ? this.state.productLines : productLines;
@@ -125,7 +132,7 @@ class Home extends React.Component {
                     }
                 });
 
-                this.getRatingsData(begDate, endDate, productLines, separateOn, (err, res) => {
+                this.getRatingsData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
                         let productLine = productLines.length === 0 ? this.state.productLines : productLines;
@@ -161,7 +168,7 @@ class Home extends React.Component {
                     }
                 });
 
-                this.getQuantityData(begDate, endDate, productLines, separateOn, (err, res) => {
+                this.getQuantityData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
                         let productLine = productLines.length === 0 ? this.state.productLines : productLines;
@@ -196,10 +203,9 @@ class Home extends React.Component {
                     }
                 });
 
-                this.getQuantityPerTimeUnit(begDate, endDate, productLines, separateOn, (err, res) => {
+                this.getQuantityPerTimeUnit(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        console.log(res)
                         let productLine = productLines.length === 0 ? this.state.productLines : productLines;
                         let data = {};
                         data["labels"] = [];
@@ -227,10 +233,8 @@ class Home extends React.Component {
                                 borderWidth: 1
                             })
                         }
-
-                        console.log(data)
         
-                        this.setState({graph6: data})
+                        this.setState({graph6: data});
                     }
                 });
             }
@@ -242,6 +246,11 @@ class Home extends React.Component {
             return (
                 <div id="home-page" className="home-page">
                     <p>This do be the home page</p>
+                    <select id="sales-branch-input" name="sales-branch-input">
+                        {this.state.branches && this.state.branches.map(x => {
+                            return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
+                        })}
+                    </select>
                     <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
                     <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
                     <select id="sales-separate-on-input" name="sales-separate-on-input">
@@ -250,7 +259,7 @@ class Home extends React.Component {
                     </select>
                     <select id="sales-product-line-input" name="sales-product-line-input" multiple>
                         {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x + "_sales"} id={x + "_sales"} value={x} onMouseDown={(e) => {
+                            return <option key={x} id={x} value={x} onMouseDown={(e) => {
                                 e.preventDefault();
                                 e.target.selected= !e.target.selected
                                 }}>{x}</option>
