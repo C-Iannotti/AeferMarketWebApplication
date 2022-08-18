@@ -60,86 +60,111 @@ class Home extends React.Component {
         let endDate = document.getElementById("sales-end-date-input").value;
         let productLines = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
         let separateOn = document.getElementById("sales-separate-on-input").value;
+
         this.getColumnValues(separateOn, (err, res) => {
             if (err) console.error(err);
             else {
                 let categoryLabels = res.data.values;
+                let productLine = productLines.length === 0 ? this.state.productLines : productLines;
+                let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
+                let newBackgroundColors = [];
+                let newBorderColors = [];
+
+                if (productLine.length != 1) {
+                    for (const item of productLine) {
+                        newBackgroundColors.push(this.state.productColors[item].backgroundColor)
+                        newBorderColors.push(this.state.productColors[item].borderColor)
+                    }
+                }
+                else {
+                    for (let i = 0; i < categoryLabels.length; i++) {
+                        newBackgroundColors.push(backgroundColors[i]);
+                        newBorderColors.push(borderColors[i]);
+                    }
+                }
                 this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
+                        let data1 = {};
+                        let data2 = {};
+                        let data3 = {};
         
-                        let data1 = {}
-                        let data2 = {}
-                        let data3 = {}
-        
-                        data1["labels"] = productLine;
-                        data2["labels"] = productLine;
+                        data1["labels"] = datasetsLabels;
+                        data2["labels"] = datasetsLabels;
                         data3["labels"] = productLine;
         
-                        let backgroundColor = []
-                        let borderColor = []
-                        let grossIncome = []
-                        let quantity = []
-                        let quantityPerCategory = []
-                        for (let i = 0; i < categoryLabels.length; i++) {
-                            quantityPerCategory.push([])
-                        }
-                        for (const item of productLine) {
-                            backgroundColor.push(this.state.productColors[item].backgroundColor)
-                            borderColor.push(this.state.productColors[item].borderColor)
+                        let grossIncome = [];
+                        let quantity = [];
+                        let grossIncomePerCategory = [];
+                        let quantityPerCategory = [];
+                        if (productLine.length > 1) {
                             for (let i = 0; i < categoryLabels.length; i++) {
-                                quantityPerCategory[i].push(
-                                    res.data[item][categoryLabels[i]] ?
-                                    res.data[item][categoryLabels[i]].quantity :
-                                    0
-                                );
+                                quantityPerCategory.push([]);
+                                grossIncomePerCategory.push([]);
                             }
-                            grossIncome.push(res.data[item].totalIncome)
-                            quantity.push(res.data[item].totalQuantity)
                         }
+
+                        for (const item of datasetsLabels) {
+                            if (productLine.length > 1) {
+                                for (let i = 0; i < categoryLabels.length; i++) {
+                                    quantityPerCategory[i].push(
+                                        res.data[item][categoryLabels[i]] ?
+                                        res.data[item][categoryLabels[i]].quantity :
+                                        0
+                                    );
+                                    grossIncomePerCategory[i].push(
+                                        res.data[item][categoryLabels[i]] ?
+                                        res.data[item][categoryLabels[i]].grossIncome :
+                                        0
+                                    );
+                                }
+                            }
+                            grossIncome.push((productLine.length > 1) ? res.data[item].totalIncome
+                                : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].grossIncome : 0);
+                            quantity.push((productLine.length > 1) ? res.data[item].totalQuantity
+                                : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].quantity : 0);
+                        }
+
                         data1["datasets"] = [{
                             label: "Gross Income",
-                            backgroundColor,
-                            borderColor,
+                            backgroundColor: newBackgroundColors,
+                            borderColor: newBorderColors,
                             data: grossIncome,
                             borderWidth: 1
-                        }]
+                        }];
                         data2["datasets"] = [{
                             label: "Quantity",
-                            backgroundColor,
-                            borderColor,
+                            backgroundColor: newBackgroundColors,
+                            borderColor: newBorderColors,
                             data: quantity,
                             borderWidth: 1
-                        }]
-        
-                        data3["datasets"] = []
-                        for (let i = 0; i < categoryLabels.length; i++) {
-                            data3["datasets"].push({
-                                label: categoryLabels[i],
-                                backgroundColor: backgroundColors[i],
-                                borderColor: borderColors[i],
-                                data: quantityPerCategory[i],
-                                borderWidth: 1
-                            })
+                        }];
+                        if (productLine.length > 1) {
+                            data3["datasets"] = [];
+                            for (let i = 0; i < categoryLabels.length; i++) {
+                                data3["datasets"].push({
+                                    label: categoryLabels[i],
+                                    backgroundColor: backgroundColors[i],
+                                    borderColor: borderColors[i],
+                                    data: quantityPerCategory[i],
+                                    borderWidth: 1
+                                });
+                            }
                         }
         
                         this.setState({
                             graph1: data1,
                             graph2: data2,
-                            graph3: data3
-                        })
+                            graph3: (productLine.length > 1) ? data3 : undefined
+                        });
                     }
                 });
 
                 this.getRatingsData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
-        
                         let data = {};
                         data["labels"] = [];
-                        let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
                         let datasetsData = []
                         for (let i = 0; i < datasetsLabels.length; i++) {
                             datasetsData.push([])
@@ -156,8 +181,8 @@ class Home extends React.Component {
                         for (let i = 0; i < datasetsLabels.length; i++) {
                             data["datasets"].push({
                                 label: datasetsLabels[i],
-                                backgroundColor: backgroundColors[i],
-                                borderColor: borderColors[i],
+                                backgroundColor: newBackgroundColors[i],
+                                borderColor: newBorderColors[i],
                                 data: datasetsData[i],
                                 borderWidth: 1,
                                 spanGaps: true
@@ -171,10 +196,8 @@ class Home extends React.Component {
                 this.getQuantityData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
                         let data = {};
                         data["labels"] = [];
-                        let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
                         let datasetsData = []
                         for (let i = 0; i < datasetsLabels.length; i++) {
                             datasetsData.push([])
@@ -191,8 +214,8 @@ class Home extends React.Component {
                         for (let i = 0; i < datasetsLabels.length; i++) {
                             data["datasets"].push({
                                 label: datasetsLabels[i],
-                                backgroundColor: backgroundColors[i],
-                                borderColor: borderColors[i],
+                                backgroundColor: newBackgroundColors[i],
+                                borderColor: newBorderColors[i],
                                 data: datasetsData[i],
                                 borderWidth: 1,
                                 spanGaps: true
@@ -206,7 +229,6 @@ class Home extends React.Component {
                 this.getQuantityPerTimeUnit(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
-                        let productLine = productLines.length === 0 ? this.state.productLines : productLines;
                         let data = {};
                         data["labels"] = [];
                         let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
@@ -227,8 +249,8 @@ class Home extends React.Component {
                         for (let i = 0; i < datasetsLabels.length; i++) {
                             data["datasets"].push({
                                 label: datasetsLabels[i],
-                                backgroundColor: backgroundColors[i],
-                                borderColor: borderColors[i],
+                                backgroundColor: newBackgroundColors[i],
+                                borderColor: newBorderColors[i],
                                 data: datasetsData[i],
                                 borderWidth: 1
                             })
