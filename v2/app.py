@@ -19,6 +19,35 @@ cors = CORS(app, origins="http://localhost",
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+def parse_body_values(conn, body):
+    if "branch" not in body or not body["branch"]:
+        body["branch"] = "A"
+
+    if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
+        body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
+    elif "endDate" not in body or not body["endDate"]:
+        body["endDate"] = datetime.date.today()
+    else:
+        try:
+            body["endDate"] = parser.parse(body["endDate"]).date()
+        except:
+            body["endDate"] = datetime.date.today()
+    
+    if "begDate" not in body or not body["begDate"]:
+        body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+    else:
+        try:
+            body["begDate"] = parser.parse(body["begDate"]).date()
+        except:
+            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+
+    if "separateOn" in body and body["separateOn"].lower() == "gender":
+        body["separateOn"] = '"Gender"'
+    else:
+        body["separateOn"] = '"CustomerType"'
+
+    return body
+
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
 def home(path):
@@ -74,36 +103,8 @@ def authenticate():
 def get_sales_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
-        errors = []
+        body = parse_body_values(conn, body)
 
-        if "branch" not in body or not body["branch"]:
-            body["branch"] = "A"
-
-        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
-            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body or not body["endDate"]:
-            body["endDate"] = datetime.date.today()
-        else:
-            try:
-                body["endDate"] = parser.parse(body["endDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["endDate"] = datetime.date.today()
-        
-        if "begDate" not in body or not body["begDate"]:
-            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-        else:
-            try:
-                body["begDate"] = parser.parse(body["begDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-
-        if "separateOn" in body and body["separateOn"].lower() == "gender":
-            body["separateOn"] = '"Gender"'
-        else:
-            body["separateOn"] = '"CustomerType"'
-        
         results = {}
         query_results = conn.execute(f"""
             SELECT "ProductLine", {body["separateOn"]}, SUM("Quantity") as Quantity, SUM("GrossIncome") as GrossIncome
@@ -114,6 +115,7 @@ def get_sales_timeframe():
             GROUP BY "ProductLine", {body["separateOn"]}
             ORDER BY "ProductLine", GrossIncome DESC;
         """)
+
         for line in query_results:
             if line[0] not in results:
                 results[line[0]] = {}
@@ -123,6 +125,7 @@ def get_sales_timeframe():
             results[line[0]][line_1] = { "quantity": line[2], "grossIncome": float(line[3])}
             results[line[0]]["totalQuantity"] += line[2]
             results[line[0]]["totalIncome"] += float(line[3])
+
         res = make_response(results)
         return res
 
@@ -131,35 +134,8 @@ def get_sales_timeframe():
 def get_ratings_timeframe():
     with db_session.connection() as conn:
         body = request.get_json()
-        errors = []
+        body = parse_body_values(conn, body)
 
-        if "branch" not in body or not body["branch"]:
-            body["branch"] = "A"
-
-        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
-            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body or not body["endDate"]:
-            body["endDate"] = datetime.date.today()
-        else:
-            try:
-                body["endDate"] = parser.parse(body["endDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["endDate"] = datetime.date.today()
-        
-        if "begDate" not in body or not body["begDate"]:
-            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-        else:
-            try:
-                body["begDate"] = parser.parse(body["begDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-
-        if "separateOn" in body and body["separateOn"].lower() == "gender":
-            body["separateOn"] = '"Gender"'
-        else:
-            body["separateOn"] = '"CustomerType"' 
         results = {}
         query_results = conn.execute(f"""
             SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date", AVG("Rating") as "Rating"
@@ -177,6 +153,7 @@ def get_ratings_timeframe():
             results[line_0][str(line[1])] = float(line[2])
         results["begDate"] = body["begDate"]
         results["endDate"] = body["endDate"]
+
         res = make_response(results)
         return res
 
@@ -185,35 +162,7 @@ def get_ratings_timeframe():
 def get_quantity_trends():
     with db_session.connection() as conn:
         body = request.get_json()
-        errors = []
-
-        if "branch" not in body or not body["branch"]:
-            body["branch"] = "A"
-
-        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
-            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body or not body["endDate"]:
-            body["endDate"] = datetime.date.today()
-        else:
-            try:
-                body["endDate"] = parser.parse(body["endDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["endDate"] = datetime.date.today()
-        
-        if "begDate" not in body or not body["begDate"]:
-            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-        else:
-            try:
-                body["begDate"] = parser.parse(body["begDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-
-        if "separateOn" in body and body["separateOn"].lower() == "gender":
-            body["separateOn"] = '"Gender"'
-        else:
-            body["separateOn"] = '"CustomerType"'
+        body = parse_body_values(conn, body)
 
         results = {}
         query_results = conn.execute(f"""
@@ -225,12 +174,14 @@ def get_quantity_trends():
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
         """)
+
         for line in query_results:
             line_0 = line[0] if line[0] is not None else "Unspecified"
             if line_0 not in results: results[line_0] = {}
             results[line_0][str(line[1])] = line[2]
         results["begDate"] = body["begDate"]
         results["endDate"] = body["endDate"]
+
         res = make_response(results)
         return res
 
@@ -238,35 +189,7 @@ def get_quantity_trends():
 def quantity_per_hour():
     with db_session.connection() as conn:
         body = request.get_json()
-        errors = []
-
-        if "branch" not in body or not body["branch"]:
-            body["branch"] = "A"
-
-        if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
-            body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
-        elif "endDate" not in body or not body["endDate"]:
-            body["endDate"] = datetime.date.today()
-        else:
-            try:
-                body["endDate"] = parser.parse(body["endDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["endDate"] = datetime.date.today()
-        
-        if "begDate" not in body or not body["begDate"]:
-            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-        else:
-            try:
-                body["begDate"] = parser.parse(body["begDate"]).date()
-            except:
-                errors.append("Passed Invalid End Date")
-                body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-
-        if "separateOn" in body and body["separateOn"].lower() == "gender":
-            body["separateOn"] = '"Gender"'
-        else:
-            body["separateOn"] = '"CustomerType"'
+        body = parse_body_values(conn, body)
 
         results = {}
         query_results = conn.execute(f"""
@@ -278,6 +201,7 @@ def quantity_per_hour():
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time"), FLOOR(EXTRACT(MINUTE FROM "Time") / 30)
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'};
         """)
+
         min_hour = 24
         max_hour = 0
         for line in query_results:
@@ -288,6 +212,7 @@ def quantity_per_hour():
             results[line_0][str(datetime.time(hour=int(line[1]), minute=int(line[2])))] = line[3]
         results["minHour"] = min_hour
         results["maxHour"] = max_hour
+
         res = make_response(results)
         return res
 
@@ -295,7 +220,7 @@ def quantity_per_hour():
 def retrieve_column_values():
     with db_session.connection() as conn:
         body = request.get_json()
-        results = {"values": []}
+
         if "column" in body and body["column"].lower() == "customertype":
             body["column"] = '"CustomerType"'
         elif "column" in body and body["column"].lower() == "gender":
@@ -304,7 +229,10 @@ def retrieve_column_values():
             body["column"] = '"Branch", "City"'
         else:
             body["column"] = '"ProductLine"'
+
+        results = {"values": []}
         query_results = conn.execute(f"""SELECT DISTINCT {body["column"]} FROM "Sales" ORDER BY {body["column"]};""")
+        
         for line in query_results:
             if len(line) > 1:
                 item = []
@@ -313,6 +241,7 @@ def retrieve_column_values():
                 results["values"].append(item)
             else:
                 results["values"].append(line[0] if line[0] is not None else "Unspecified")
+
         res = make_response(results)
         return res
 
