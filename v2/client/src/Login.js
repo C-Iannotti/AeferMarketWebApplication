@@ -12,6 +12,14 @@ class Login extends React.Component {
         this.handleLogin = this.handleLogin.bind(this);
     }
 
+    componentDidMount() {
+        this.props.checkLogin((err, res) => {
+            if (err === null) {
+                this.props.navigate("/");
+            }
+        });
+    }
+
     handleLogin() {
         let username = document.getElementById("username-input").value;
         let password = document.getElementById("password-input").value;
@@ -24,13 +32,22 @@ class Login extends React.Component {
     }
 
     render() {
-        return (
-            <div id="login-page">
-                <input type="text" id="username-input" placeholder="Username"/>
-                <input type="password" id="password-input" placeholder="Password" />
-                <button type="button" onClick={this.handleLogin}>Submit</button>
-            </div>
-        )
+        if (this.props.authenticated === false) {
+            return (
+                <div id="login-page">
+                    <input type="text" id="username-input" placeholder="Username"/>
+                    <input type="password" id="password-input" placeholder="Password" />
+                    <button type="button" onClick={this.handleLogin}>Submit</button>
+                </div>
+            )
+        }
+        else {
+            return (
+                <div id="authentication-page" className="authentication-page">
+                    <p>Waiting to be authenticated...</p>
+                </div>
+            )
+        }
     }
 }
 

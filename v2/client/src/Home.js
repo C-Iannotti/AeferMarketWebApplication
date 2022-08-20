@@ -51,7 +51,11 @@ class Home extends React.Component {
                 this.setState({ branches: res.data.values });
             }
         });
-        this.props.checkLogin(this.props.navigate);
+        this.props.checkLogin((err, res) => {
+            if (err) {
+                this.props.navigate("/login");
+            }
+        });
     }
 
     handleGetSalesData() {
@@ -70,7 +74,7 @@ class Home extends React.Component {
                 let newBackgroundColors = [];
                 let newBorderColors = [];
 
-                if (productLine.length != 1) {
+                if (productLine.length !== 1) {
                     for (const item of productLine) {
                         newBackgroundColors.push(this.state.productColors[item].backgroundColor)
                         newBorderColors.push(this.state.productColors[item].borderColor)

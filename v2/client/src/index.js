@@ -26,20 +26,19 @@ class App extends React.Component {
     this.checkLogin();
   }
 
-  checkLogin(navigate=undefined) {
+  checkLogin(callback=()=>{return}) {
     this.authenticate((err, res) => {
       if (err) {
         this.setState({
           username: undefined,
           authenticated: false
-        });
-        if(navigate) navigate("/login");
+        }, () => callback(err));
       }
       else {
         this.setState({
           authenticated: res.data.isAuthenticated,
           username: res.data.username
-        });
+        }, () => callback(null, res));
       }
     });
   }
@@ -57,7 +56,7 @@ class App extends React.Component {
         {this.state.authenticated && <Header username={this.state.username} setLogoutState={this.setLogoutState} />}
         <Routes>
           <Route path="/" element={<Home checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
           <Route path="*" element={<p>Unable to find Route!</p>}/>
         </Routes>
       </BrowserRouter>
