@@ -271,7 +271,19 @@ class Home extends React.Component {
         if (this.props.authenticated) {
             return (
                 <div id="home-page" className="home-page">
-                    <p>This do be the home page</p>
+                    <div className="product-line-color-key">
+                        {this.state.productColors && Object.keys(this.state.productColors).map(x => {
+                            return (<div key={x + "_colorbox"} className="product-line-key-object">
+                                <div
+                                    className="color-box"
+                                    style={{
+                                        backgroundColor: this.state.productColors[x].backgroundColor,
+                                        borderColor: this.state.productColors[x].borderColor
+                                        }}></div>
+                                <p>{x}</p>
+                            </div>)
+                        })}
+                    </div>
                     <select id="sales-branch-input" name="sales-branch-input">
                         {this.state.branches && this.state.branches.map(x => {
                             return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
