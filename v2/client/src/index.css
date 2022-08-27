@@ -20,7 +20,7 @@ code {
     monospace;
 }
 
-.product-line-color-key {
+.color-key {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -28,7 +28,7 @@ code {
   gap: 10px;
 }
 
-.product-line-key-object {
+.key-object {
   display: flex;
   flex-direction: row;
   justify-content: center;

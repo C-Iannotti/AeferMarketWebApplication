@@ -21,9 +21,13 @@ import {
 class Home extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            pageNumber: 1
+        };
 
         this.handleGetSalesData = this.handleGetSalesData.bind(this);
+        this.getGraphDisplay = this.getGraphDisplay.bind(this);
+        this.getKeyDisplay = this.getKeyDisplay.bind(this);
         this.getSalesData = getSalesData.bind(this);
         this.getRatingsData = getRatingsData.bind(this);
         this.getQuantityData = getQuantityData.bind(this);
@@ -68,6 +72,7 @@ class Home extends React.Component {
         this.getColumnValues(separateOn, (err, res) => {
             if (err) console.error(err);
             else {
+                this.setState({ separateOnValues: res.data.values });
                 let categoryLabels = res.data.values;
                 let productLine = productLines.length === 0 ? this.state.productLines : productLines;
                 let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
@@ -267,44 +272,50 @@ class Home extends React.Component {
         });
     }
 
-    render() {
-        if (this.props.authenticated) {
-            return (
-                <div id="home-page" className="home-page">
-                    <div className="product-line-color-key">
-                        {this.state.productColors && Object.keys(this.state.productColors).map(x => {
-                            return (<div key={x + "_colorbox"} className="product-line-key-object">
-                                <div
-                                    className="color-box"
-                                    style={{
-                                        backgroundColor: this.state.productColors[x].backgroundColor,
-                                        borderColor: this.state.productColors[x].borderColor
-                                        }}></div>
-                                <p>{x}</p>
-                            </div>)
-                        })}
+    getKeyDisplay() {
+        let separateOnKeys = null;
+        if (this.state.separateOnValues) {
+            separateOnKeys = []
+            for (let i = 0; i < this.state.separateOnValues.length; i++) {
+                separateOnKeys.push(
+                    <div key={this.state.separateOnValues[i] + "_colorbox"} className="key-object">
+                        <div
+                            className="color-box"
+                            style={{
+                                backgroundColor: backgroundColors[i],
+                                borderColor: borderColors[i]
+                                }}></div>
+                        <p>{this.state.separateOnValues[i]}</p>
                     </div>
-                    <select id="sales-branch-input" name="sales-branch-input">
-                        {this.state.branches && this.state.branches.map(x => {
-                            return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
-                        })}
-                    </select>
-                    <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
-                    <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
-                    <select id="sales-separate-on-input" name="sales-separate-on-input">
-                        <option value="gender">Gender</option>
-                        <option value="customertype">Customer Type</option>
-                    </select>
-                    <select id="sales-product-line-input" name="sales-product-line-input" multiple>
-                        {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x} id={x} value={x} onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.target.selected= !e.target.selected
-                                }}>{x}</option>
-                        })}
-                    </select>
-                    <button type="button" onClick={this.handleGetSalesData}>Submit</button>
-                    <br />
+                )
+            }
+        }
+        return (
+            <div className="key-display">
+                <div className="color-key">
+                    {this.state.productColors && Object.keys(this.state.productColors).map(x => {
+                        return (<div key={x + "_colorbox"} className="key-object">
+                            <div
+                                className="color-box"
+                                style={{
+                                    backgroundColor: this.state.productColors[x].backgroundColor,
+                                    borderColor: this.state.productColors[x].borderColor
+                                    }}></div>
+                            <p>{x}</p>
+                        </div>)
+                    })}
+                </div>
+                <div className="color-key">
+                {separateOnKeys}
+                </div>
+            </div>
+        )
+    }
+
+    getGraphDisplay() {
+        if (this.state.pageNumber === 1) {
+            return (
+                <div className="graph-display">
                     <div className="sales-graph-group1">
                         {this.state.graph1 &&
                             <div className="graph1">
@@ -331,21 +342,61 @@ class Home extends React.Component {
                                 options={{plugins: {legend: false}}}/>
                         </div>
                     }
-                    <br />
+                </div>
+            )
+        }
+        else {
+            return (
+                <div className="graph-display">
                     {this.state.graph4 &&
                         <div className="graph4">
                             <Line data={this.state.graph4}
                                 options={{plugins: {legend: false}}}/>
                         </div>
                     }
-                    <br />
-                    <br />
                     {this.state.graph5 &&
                         <div className="graph4">
                             <Line data={this.state.graph5}
                                 options={{plugins: {legend: false}}}/>
                         </div>
                     }
+                </div>
+            )
+        }
+    }
+
+    render() {
+        if (this.props.authenticated) {
+            return (
+                <div id="home-page" className="home-page">
+                    {this.getKeyDisplay()}
+                    <select id="sales-branch-input" name="sales-branch-input">
+                        {this.state.branches && this.state.branches.map(x => {
+                            return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
+                        })}
+                    </select>
+                    <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
+                    <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
+                    <select id="sales-separate-on-input" name="sales-separate-on-input">
+                        <option value="gender">Gender</option>
+                        <option value="customertype">Customer Type</option>
+                    </select>
+                    <select id="sales-product-line-input" name="sales-product-line-input" multiple>
+                        {this.state.productLines && this.state.productLines.map(x => {
+                            return <option key={x} id={x} value={x} onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.target.selected= !e.target.selected
+                                }}>{x}</option>
+                        })}
+                    </select>
+                    <button type="button" onClick={this.handleGetSalesData}>Submit</button>
+                    <br />
+                    {this.getGraphDisplay()}
+                    <br />
+                    <div className="graph-display-page-buttons">
+                        <button type="button" onClick={() => {this.setState({ pageNumber: 1})}}>Previous</button>
+                        <button type="button" onClick={() => {this.setState({ pageNumber: 2})}}>Next</button>
+                    </div>
                 </div>
             )
         }
