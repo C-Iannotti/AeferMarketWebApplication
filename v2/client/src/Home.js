@@ -320,26 +320,26 @@ class Home extends React.Component {
                         {this.state.graph1 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph1}
-                                    options={{plugins: {legend: false}}}/>
+                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                             </div>
                         }
                         {this.state.graph2 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph2}
-                                    options={{plugins: {legend: false}}}/>
+                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                             </div>
                         }
                     </div>
                     {this.state.graph3 &&
                         <div className="graph3">
                             <Bar data={this.state.graph3}
-                                options={{plugins: {legend: false}}}/>
+                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                         </div>
                     }
                     {this.state.graph6 &&
                         <div className="graph3">
                             <Bar data={this.state.graph6}
-                                options={{plugins: {legend: false}}}/>
+                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                         </div>
                     }
                 </div>
@@ -348,16 +348,30 @@ class Home extends React.Component {
         else {
             return (
                 <div className="graph-display">
+                    <div className="sales-graph-group1">
+                        {this.state.graph1 &&
+                            <div className="graph1">
+                                <Pie data={this.state.graph1}
+                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                            </div>
+                        }
+                        {this.state.graph2 &&
+                            <div className="graph1">
+                                <Pie data={this.state.graph2}
+                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                            </div>
+                        }
+                    </div>
                     {this.state.graph4 &&
                         <div className="graph4">
                             <Line data={this.state.graph4}
-                                options={{plugins: {legend: false}}}/>
+                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                         </div>
                     }
                     {this.state.graph5 &&
                         <div className="graph4">
                             <Line data={this.state.graph5}
-                                options={{plugins: {legend: false}}}/>
+                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
                         </div>
                     }
                 </div>
