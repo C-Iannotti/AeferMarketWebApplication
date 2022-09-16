@@ -10,6 +10,7 @@ class Header extends React.Component {
         this.state = {};
 
         this.handleLogout = this.handleLogout.bind(this);
+        this.handlePageChange = this.handlePageChange.bind(this);
         this.logout = logout.bind(this);
     }
 
@@ -23,10 +24,18 @@ class Header extends React.Component {
         });
     }
 
+    handlePageChange(page) {
+        this.props.navigate(page)
+    }
+
     render() {
         return (
             <div className="header">
                 <p>{this.props.username}</p>
+                <button type="button" id="home-button" onClick={() => this.handlePageChange("/")}>Home</button>
+                <button type="button" id="model-button" onClick={() => this.handlePageChange("/model")}>Model</button>
+                <button type="button" id="data-button" onClick={() => this.handlePageChange("/data")}>Data</button>
+                <button type="button" id="logs-button" onClick={() => this.handlePageChange("/logs")}>Logs</button>
                 <button type="button" id="logout-button" onClick={this.handleLogout}>Logout</button>
             </div>
         )

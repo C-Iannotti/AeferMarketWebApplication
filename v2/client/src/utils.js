@@ -116,7 +116,6 @@ export function getPredictedTrends(branch, endDate=undefined, productLine=undefi
         withCredentials: true
     })
     .then(res => {
-        console.log("Here")
         callback(null, res);
     })
     .catch(err => {

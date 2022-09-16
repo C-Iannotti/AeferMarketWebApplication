@@ -1,4 +1,3 @@
-from lib2to3.pytree import _Results
 import os
 import datetime
 from dateutil import parser, relativedelta
@@ -253,7 +252,6 @@ def retrieve_column_values():
 @login_required
 def retrieve_trend_predictions():
     with db_session.connection() as conn:
-        print("Here")
         body = request.get_json()
         body = parse_body_values(conn, body)
         model = tf.keras.models.load_model("./model/model.h5")
@@ -273,8 +271,8 @@ def retrieve_trend_predictions():
         """)
 
         prev_pl = None
+        predictions_pl = []
         for line in query_results:
-            print(line)
             if prev_pl != line[0]:
                 if prev_pl is not None:
                     model_columns.iloc[-1]["Month"] = prediction_month
@@ -282,18 +280,25 @@ def retrieve_trend_predictions():
                     model_columns.iloc[-1][prev_pl] = 1
                 model_columns.loc[len(model_columns)] = [0 for i in range(model_columns.shape[1])]
                 prev_pl = line[0]
+                predictions_pl.append(prev_pl)
             model_columns.iloc[-1][str(13 - (body["endDate"] - line[1]).days)] = line[2]
         model_columns.iloc[-1]["Month"] = prediction_month
         model_columns.iloc[-1][body["branch"]] = 1
         model_columns.iloc[-1][prev_pl] = 1
 
-        tf_model_columns = tf.convert_to_tensor(model_columns.reshape(-1, 1, model_columns.shape[1]))
-        results = {"predictios": model(tf_model_columns).tolist()}
-        print(results)
-        print(model_columns)
+        tf_model_columns = tf.convert_to_tensor(model_columns.to_numpy().reshape(-1, 1, model_columns.shape[1]))
+        results = {
+            "predictions": model(tf_model_columns).numpy().reshape(-1,).tolist(),
+            "predictionsPL": predictions_pl
+        }
+        for i in range(len(results["predictions"])):
+            if results["predictions"][i] <= 0:
+                results["predictions"][i] = 0
+            elif results["predictions"][i] >= 2:
+                results["predictions"][i] = 2
+            else:
+                results["predictions"][i] = int(round(results["predictions"][i]))
 
-        #print(body)
-        results = []
         res = make_response(results)
         return res
 

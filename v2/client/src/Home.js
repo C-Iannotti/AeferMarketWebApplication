@@ -29,6 +29,7 @@ class Home extends React.Component {
         this.handleGetDisplayData = this.handleGetDisplayData.bind(this);
         this.getGraphDisplay = this.getGraphDisplay.bind(this);
         this.getKeyDisplay = this.getKeyDisplay.bind(this);
+        this.getPredictionsDisplay = this.getPredictionsDisplay.bind(this);
         this.getSalesData = getSalesData.bind(this);
         this.getRatingsData = getRatingsData.bind(this);
         this.getQuantityData = getQuantityData.bind(this);
@@ -95,10 +96,12 @@ class Home extends React.Component {
                 }
 
                 this.getPredictedTrends(branch, endDate, productLine, (err, res) => {
-                    console.log("Hwyyyyyyy")
                     if (err) console.error(err);
                     else{
-                        console.log(res);
+                        this.setState({
+                            predictions: res.data.predictions,
+                            predictionsPL: res.data.predictionsPL
+                        })
                     }
                 });
                 this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
@@ -225,7 +228,7 @@ class Home extends React.Component {
                             let temp = x.toISOString().split("T")[0]
                             data["labels"].push(temp)
                             for (let i = 0; i < datasetsLabels.length; i++) {
-                                datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : null);
+                                datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : 0);
                             }
                         }
         
@@ -389,6 +392,33 @@ class Home extends React.Component {
         }
     }
 
+    getPredictionsDisplay() {
+        let predictionHTML = []
+        for (let i = 0; i < this.state.predictions.length; i++) {
+            let predictionDirection = "~"
+            let predictionClass = "predict-same"
+            if (this.state.predictions[i] == 2) {
+                predictionDirection = "ᐃ"
+                predictionClass = "predict-up"
+            }
+            else if (this.state.predictions[i] == 0) {
+                predictionDirection = "ᐁ"
+                predictionClass = "predict-down"
+            }
+            predictionHTML.push(
+                <div className={"product-line-prediction " + predictionClass} key={this.state.predictionsPL[i] + "_prediction"}>
+                    {this.state.predictionsPL[i]} {predictionDirection}
+                </div>
+            )
+        }
+
+        return (
+            <div className="product-line-predictions">
+                {predictionHTML}
+            </div>
+        )
+    }
+
     render() {
         if (this.props.authenticated) {
             return (
@@ -415,6 +445,7 @@ class Home extends React.Component {
                     </select>
                     <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
                     <br />
+                    {this.state.predictions && this.getPredictionsDisplay()}
                     {this.getGraphDisplay()}
                     <br />
                     <div className="graph-display-page-buttons">

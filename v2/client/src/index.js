@@ -2,8 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import Home from "./Home.js";
-import Login from "./Login.js"
-import Header from "./Header.js"
+import Login from "./Login.js";
+import Header from "./Header.js";
+import Data from "./Data.js";
+import Logs from "./Logs.js";
+import Model from "./Model.js";
 import { 
   BrowserRouter,
   Routes,
@@ -57,6 +60,9 @@ class App extends React.Component {
         <Routes>
           <Route path="/" element={<Home checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
           <Route path="/login" element={<Login checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+          <Route path="/data" element={<Data checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+          <Route path="/logs" element={<Logs checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+          <Route path="/model" element={<Model checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
           <Route path="*" element={<p>Unable to find Route!</p>}/>
         </Routes>
       </BrowserRouter>
