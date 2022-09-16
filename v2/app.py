@@ -1,3 +1,4 @@
+from lib2to3.pytree import _Results
 import os
 import datetime
 from dateutil import parser, relativedelta
@@ -8,6 +9,8 @@ from database import db_session, init_db
 from models import Sales, Users
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+import tensorflow as tf
+import pandas as pd
 
 load_dotenv()
 
@@ -186,6 +189,7 @@ def get_quantity_trends():
         return res
 
 @app.post("/api/quantity-per-half-hour")
+@login_required
 def quantity_per_hour():
     with db_session.connection() as conn:
         body = request.get_json()
@@ -242,6 +246,54 @@ def retrieve_column_values():
             else:
                 results["values"].append(line[0] if line[0] is not None else "Unspecified")
 
+        res = make_response(results)
+        return res
+
+@app.post("/api/retrieve-trend-predictions")
+@login_required
+def retrieve_trend_predictions():
+    with db_session.connection() as conn:
+        print("Here")
+        body = request.get_json()
+        body = parse_body_values(conn, body)
+        model = tf.keras.models.load_model("./model/model.h5")
+        body["begDate"] = body["endDate"] - datetime.timedelta(days=13)
+        prediction_month = (body["endDate"] + datetime.timedelta(days=1)).month
+
+        model_columns = pd.read_pickle("./model/transformed_model_columns.pkl")
+
+        query_results = conn.execute(f"""
+            SELECT "ProductLine", "Date", SUM("Quantity")
+            FROM "Sales"
+            WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
+            {'AND "Branch"=' + "'" + body['branch'] + "'"}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            GROUP BY "ProductLine", "Date"
+            ORDER BY "ProductLine", "Date";
+        """)
+
+        prev_pl = None
+        for line in query_results:
+            print(line)
+            if prev_pl != line[0]:
+                if prev_pl is not None:
+                    model_columns.iloc[-1]["Month"] = prediction_month
+                    model_columns.iloc[-1][body["branch"]] = 1
+                    model_columns.iloc[-1][prev_pl] = 1
+                model_columns.loc[len(model_columns)] = [0 for i in range(model_columns.shape[1])]
+                prev_pl = line[0]
+            model_columns.iloc[-1][str(13 - (body["endDate"] - line[1]).days)] = line[2]
+        model_columns.iloc[-1]["Month"] = prediction_month
+        model_columns.iloc[-1][body["branch"]] = 1
+        model_columns.iloc[-1][prev_pl] = 1
+
+        tf_model_columns = tf.convert_to_tensor(model_columns.reshape(-1, 1, model_columns.shape[1]))
+        results = {"predictios": model(tf_model_columns).tolist()}
+        print(results)
+        print(model_columns)
+
+        #print(body)
+        results = []
         res = make_response(results)
         return res
 

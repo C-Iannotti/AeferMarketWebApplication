@@ -104,6 +104,26 @@ export function getQuantityPerTimeUnit(branch, begDate=undefined, endDate=undefi
     });
 }
 
+export function getPredictedTrends(branch, endDate=undefined, productLine=undefined, callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_PREDICT_TRENDS_PATH"],
+        data: {
+            branch,
+            productLine,
+            endDate
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        console.log("Here")
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};
+
 export function getColumnValues(column, callback=()=>{return}) {
     axios({
         method: "post",

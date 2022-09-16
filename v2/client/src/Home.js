@@ -15,7 +15,8 @@ import {
     getRatingsData,
     getQuantityData,
     getColumnValues,
-    getQuantityPerTimeUnit
+    getQuantityPerTimeUnit,
+    getPredictedTrends
 } from "./utils.js"
 
 class Home extends React.Component {
@@ -25,7 +26,7 @@ class Home extends React.Component {
             pageNumber: 1
         };
 
-        this.handleGetSalesData = this.handleGetSalesData.bind(this);
+        this.handleGetDisplayData = this.handleGetDisplayData.bind(this);
         this.getGraphDisplay = this.getGraphDisplay.bind(this);
         this.getKeyDisplay = this.getKeyDisplay.bind(this);
         this.getSalesData = getSalesData.bind(this);
@@ -33,6 +34,7 @@ class Home extends React.Component {
         this.getQuantityData = getQuantityData.bind(this);
         this.getQuantityPerTimeUnit = getQuantityPerTimeUnit.bind(this);
         this.getColumnValues = getColumnValues.bind(this);
+        this.getPredictedTrends = getPredictedTrends.bind(this);
     }
 
     componentDidMount() {
@@ -62,7 +64,7 @@ class Home extends React.Component {
         });
     }
 
-    handleGetSalesData() {
+    handleGetDisplayData() {
         let branch = document.getElementById("sales-branch-input").value;
         let begDate = document.getElementById("sales-beg-date-input").value;
         let endDate = document.getElementById("sales-end-date-input").value;
@@ -91,6 +93,14 @@ class Home extends React.Component {
                         newBorderColors.push(borderColors[i]);
                     }
                 }
+
+                this.getPredictedTrends(branch, endDate, productLine, (err, res) => {
+                    console.log("Hwyyyyyyy")
+                    if (err) console.error(err);
+                    else{
+                        console.log(res);
+                    }
+                });
                 this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
                     if (err) console.error(err);
                     else {
@@ -403,7 +413,7 @@ class Home extends React.Component {
                                 }}>{x}</option>
                         })}
                     </select>
-                    <button type="button" onClick={this.handleGetSalesData}>Submit</button>
+                    <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
                     <br />
                     {this.getGraphDisplay()}
                     <br />
