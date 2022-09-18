@@ -13,6 +13,8 @@ import pandas as pd
 
 load_dotenv()
 
+BATCH_SIZE = 256
+
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
 app.config["SECRET_KEY"] = os.getenv("SECRET")
 app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(minutes=30)
@@ -47,6 +49,12 @@ def parse_body_values(conn, body):
         body["separateOn"] = '"Gender"'
     else:
         body["separateOn"] = '"CustomerType"'
+
+    if "model_method" not in body:
+        body["model_method"] = "Increment"
+
+    if "data_method" not in body:
+        body["data_method"] = "Append"
 
     return body
 
@@ -301,6 +309,30 @@ def retrieve_trend_predictions():
 
         res = make_response(results)
         return res
+
+
+@app.post("/api/update-model-data")
+@login_required
+def update_model_data():
+    with db_session.connection() as conn:
+        body = request.get_json()
+        body = parse_body_values(conn, body)
+
+        if body["data_method"] == "Append":
+            
+
+
+@app.post("/api/change-model")
+@login_required
+def change_model():
+    if not current_user.alter_model:
+            return "", 403
+
+    with db_session.connection() as conn:
+        body = request.get_json()
+        body = parse_body_values(conn, body)
+        
+        #if body["model_method"] == "Increment":
 
 @login_manager.user_loader
 def load_user(user_id):

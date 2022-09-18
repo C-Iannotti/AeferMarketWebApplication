@@ -10,7 +10,9 @@ class Model extends React.Component {
     render() {
         return (
             <div className="model-page">
-                This is the model page
+                <button type="button">Retrieve Old Model</button>
+                <button type="button">Train model</button>
+                <button type="button">Reinitialize Model</button>
             </div>
         )
     }

@@ -1,5 +1,6 @@
 from math import prod
-from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric
+from xmlrpc.client import Boolean
+from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean
 from database import Base
 from flask_login import UserMixin
 import simplejson as json
@@ -75,13 +76,13 @@ class Users(Base, UserMixin):
     id = Column("UserID", String, primary_key=True)
     username = Column("Username", String)
     password = Column("Password", String)
-    authority_level = Column("AuthorityLevel", SmallInteger)
+    alter_model = Column("AlterModel", Boolean)
 
-    def __init__(self, id=None, username=None, password=None, authority_level=None):
+    def __init__(self, id=None, username=None, password=None, alter_model=None):
         self.id = id
         self.username = username
         self.password = password
-        self.authority_level = authority_level
+        self.alter_model = alter_model
 
     def __repr__(self):
         return f'<User id={self.id}>'
