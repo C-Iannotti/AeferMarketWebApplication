@@ -1,6 +1,6 @@
 from math import prod
 from xmlrpc.client import Boolean
-from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean
+from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean, Integer
 from database import Base
 from flask_login import UserMixin
 import simplejson as json
@@ -86,3 +86,21 @@ class Users(Base, UserMixin):
 
     def __repr__(self):
         return f'<User id={self.id}>'
+
+class ModelData(Base):
+    __tablename__ = "ModelData"
+    branch = Column("Branch", String, primary_key=True)
+    product_line = Column("ProductLine", String)
+    date = Column("Date", Date, primary_key=True)
+    quantity = Column("Quantity", Integer)
+
+    def __init__(self, branch=None, product_line=None, date=None, quantity=None):
+        self.branch = branch
+        self.product_line = product_line
+        self.date = date
+        self.quantity = quantity
+
+    def __repr__(self):
+        return f'<ModelData branch={self.branch} product_line={self.product_line} date={self.date} quantity={self.quantity}>'
+
+    

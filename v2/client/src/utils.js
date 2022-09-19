@@ -170,3 +170,37 @@ export function logout(callback=()=>{return}) {
         callback(err);
     });
 };
+
+export function appendModelData(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_MODEL_DATA_PATH"],
+        data: {
+            dataMethod: "append"
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};
+
+export function replaceModelData(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_MODEL_DATA_PATH"],
+        data: {
+            dataMethod: "replace"
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};

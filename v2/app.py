@@ -5,7 +5,7 @@ from flask import Flask, send_from_directory, make_response, request, session
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user
 from database import db_session, init_db
-from models import Sales, Users
+from models import Sales, Users, ModelData
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import tensorflow as tf
@@ -50,11 +50,11 @@ def parse_body_values(conn, body):
     else:
         body["separateOn"] = '"CustomerType"'
 
-    if "model_method" not in body:
-        body["model_method"] = "Increment"
+    if "modelMethod" not in body:
+        body["modelMethod"] = "Increment"
 
-    if "data_method" not in body:
-        body["data_method"] = "Append"
+    if "dataMethod" not in body:
+        body["dataMethod"] = "Append"
 
     return body
 
@@ -73,7 +73,7 @@ def login():
     with db_session.connection() as conn:
         body = request.get_json()
         query_results = conn.execute(f"""
-            SELECT "UserID", "Username", "Password", "AuthorityLevel"
+            SELECT "UserID", "Username", "Password", "AlterModel"
             FROM "Users"
             WHERE "Username"='{body["username"]}'
         """)
@@ -314,12 +314,74 @@ def retrieve_trend_predictions():
 @app.post("/api/update-model-data")
 @login_required
 def update_model_data():
+    if not current_user.alter_model:
+            return "", 403
+
     with db_session.connection() as conn:
         body = request.get_json()
         body = parse_body_values(conn, body)
 
-        if body["data_method"] == "Append":
+        if body["dataMethod"].lower() == "append":
+            query_results = conn.execute(f"""
+                SELECT MAX("Date")
+                FROM "ModelData";
+            """)
+            for line in query_results:
+                min_date = line[0]
+            if min_date is not None: min_date = min_date + datetime.timedelta(days=1)
             
+            query_results = conn.execute(f"""
+                SELECT MIN("Date"), MAX("Date")
+                FROM "Sales";
+            """)
+            for line in query_results:
+                if min_date is None:
+                    min_date = line[0]
+                max_date = line[1]
+
+            query_results = conn.execute(f"""
+                INSERT INTO "ModelData"
+                SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
+                FROM 
+                (SELECT "Branch", "ProductLine", "Date", "Quantity"
+                FROM "Sales"
+                UNION
+                SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
+                FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
+                ) as c
+                WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
+                GROUP BY "Branch", "ProductLine", "Date"
+                ORDER BY "Branch", "ProductLine", "Date";
+            """)
+
+        if body["dataMethod"].lower() == "replace":
+            #query_results = conn.execute("""DELETE FROM "ModelData";""")
+
+            query_results = conn.execute(f"""
+                SELECT MIN("Date"), MAX("Date")
+                FROM "Sales";
+            """)
+            for line in query_results:
+                min_date = line[0]
+                max_date = line[1]
+
+            query_results = conn.execute(f"""
+                INSERT INTO "ModelData"
+                SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
+                FROM 
+                (SELECT "Branch", "ProductLine", "Date", "Quantity"
+                FROM "Sales"
+                UNION
+                SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
+                FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
+                ) as c
+                WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
+                GROUP BY "Branch", "ProductLine", "Date"
+                ORDER BY "Branch", "ProductLine", "Date";
+            """)
+
+        db_session.commit()
+        return "", 200
 
 
 @app.post("/api/change-model")
@@ -332,7 +394,7 @@ def change_model():
         body = request.get_json()
         body = parse_body_values(conn, body)
         
-        #if body["model_method"] == "Increment":
+        #if body["modelMethod"] == "Increment":
 
 @login_manager.user_loader
 def load_user(user_id):
