@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 
-engine = create_engine(os.getenv("DATABASE_URL"), echo=True)
+engine = create_engine(os.getenv("DATABASE_URL"))
 db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 Base = declarative_base()

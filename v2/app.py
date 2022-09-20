@@ -10,10 +10,9 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import tensorflow as tf
 import pandas as pd
+from sales_ml_model import MLModel
 
 load_dotenv()
-
-BATCH_SIZE = 256
 
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
 app.config["SECRET_KEY"] = os.getenv("SECRET")
@@ -22,6 +21,8 @@ cors = CORS(app, origins="http://localhost",
       supports_credentials=True)
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+model = MLModel()
 
 def parse_body_values(conn, body):
     if "branch" not in body or not body["branch"]:
@@ -51,10 +52,10 @@ def parse_body_values(conn, body):
         body["separateOn"] = '"CustomerType"'
 
     if "modelMethod" not in body:
-        body["modelMethod"] = "Increment"
+        body["modelMethod"] = "increment"
 
     if "dataMethod" not in body:
-        body["dataMethod"] = "Append"
+        body["dataMethod"] = "append"
 
     return body
 
@@ -471,16 +472,17 @@ def change_model():
     with db_session.connection() as conn:
         body = request.get_json()
         body = parse_body_values(conn, body)
+        print(body)
         
-        if body["modelMethod"] == "Increment":
+        if body["modelMethod"].lower() == "increment":
+            train_acc, valid_acc = model.train_model(10)
 
-            input_data = tf.convert_to_tensor(train_data_pd.values.reshape(-1, 1, train_data_pd.shape[1]))
-            input_labels = tf.convert_to_tensor(train_class_pd.values.reshape(-1, 1, 1), dtype=tf.float32)
-            valid_data = tf.convert_to_tensor(valid_data_pd.values.reshape(-1, 1, valid_data_pd.shape[1]))
-            valid_labels = tf.convert_to_tensor(valid_class_pd.values.reshape(-1, 1, 1), dtype=tf.float32)
+        if body["modelMethod"].lower() == "remake":
+            print("Why")
+            train_acc, valid_acc = model.remake_model()
 
-            model = tf.keras.models.load_model("./model.h5")
-            model.fit(x=input_data, y=input_labels, epochs=10, batch_size=BATCH_SIZE)
+        res = make_response({"trainAccuracy": train_acc, "validAccuracy": valid_acc})
+        return res
 
 @login_manager.user_loader
 def load_user(user_id):

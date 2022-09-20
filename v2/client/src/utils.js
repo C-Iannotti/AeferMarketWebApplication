@@ -204,3 +204,37 @@ export function replaceModelData(callback=()=>{return}) {
         callback(err);
     });
 };
+
+export function incrementModel(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_MODEL_PATH"],
+        data: {
+            modelMethod: "increment"
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};
+
+export function remakeModel(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_MODEL_PATH"],
+        data: {
+            modelMethod: "remake"
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};
