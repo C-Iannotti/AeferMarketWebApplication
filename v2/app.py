@@ -355,7 +355,7 @@ def update_model_data():
             """)
 
         if body["dataMethod"].lower() == "replace":
-            #query_results = conn.execute("""DELETE FROM "ModelData";""")
+            query_results = conn.execute("""DELETE FROM "ModelData";""")
 
             query_results = conn.execute(f"""
                 SELECT MIN("Date"), MAX("Date")
@@ -380,6 +380,84 @@ def update_model_data():
                 ORDER BY "Branch", "ProductLine", "Date";
             """)
 
+        data = pd.DataFrame(columns=["Branch", "Product line", "Date", "Quantity"])
+        query_results = conn.execute("""
+            SELECT "Branch", "ProductLine", "Date", "Quantity"
+            FROM "ModelData"
+            ORDER BY "Branch", "ProductLine", "Date"
+        """)
+        for line in query_results:
+            data.loc[len(data.index)] = [line[0], line[1], line[2], line[3]]
+
+        train_data = pd.DataFrame(columns=["Branch", "Product line", "Month"] + [f"{i}" for i in range(14)] + ["Class"])
+        branches = pd.unique(data["Branch"])
+        product_lines = pd.unique(data["Product line"])
+        j=0
+
+        for [branch, product_line], cur_frame in data.groupby(["Branch", "Product line"]):
+            values = cur_frame["Quantity"]
+            cur_slide = values.iloc[:14].to_list()
+            for i in range(14, values.shape[0]):
+                label = 1
+
+                if cur_slide[-1] - values.iloc[i] >= cur_slide[-1] * 0.33:
+                    label = 0
+                elif cur_slide[-1] - values.iloc[i] <= cur_slide[-1] * -0.33:
+                    label = 2
+                train_data.loc[len(train_data.index)] = [branch, product_line, cur_frame.iloc[i]["Date"].month] + cur_slide + [label]
+
+                cur_slide.pop(0)
+                cur_slide.append(values.iloc[i])
+                    
+        train_data = pd.concat([train_data, pd.get_dummies(train_data["Branch"])], axis=1)
+        train_data = pd.concat([train_data, pd.get_dummies(train_data["Product line"])], axis=1)
+
+        train_data.pop("Branch")
+        train_data.pop("Product line")
+        train_data = train_data[[c for c in train_data if c not in [f"{i}" for i in range(14)]] 
+            + [f"{i}" for i in range(14)]]
+                    
+        train_data_columns = train_data.iloc[:0].copy().drop(columns=["Class"])
+        train_data_columns.to_pickle("./model/transformed_model_columns.pkl")
+        
+        valid_data = train_data.sample(frac=0.15)
+        train_data = train_data.drop(valid_data.index)
+
+        train_0 = train_data[train_data["Class"] == 0]
+        train_1 = train_data[train_data["Class"] == 1]
+        train_2 = train_data[train_data["Class"] == 2]
+        max_train = (train_0 if train_0.shape[0] >= train_1.shape[0] and train_0.shape[0] >= train_2.shape[0] else
+                    train_1 if train_1.shape[0] >= train_0.shape[0] and train_1.shape[0] >= train_2.shape[0] else
+                    train_2)
+
+        valid_0 = valid_data[valid_data["Class"] == 0]
+        valid_1 = valid_data[valid_data["Class"] == 1]
+        valid_2 = valid_data[valid_data["Class"] == 2]
+        max_valid = (valid_0 if valid_0.shape[0] >= valid_1.shape[0] and valid_0.shape[0] >= valid_2.shape[0] else
+                    valid_1 if valid_1.shape[0] >= valid_0.shape[0] and valid_1.shape[0] >= valid_2.shape[0] else
+                    valid_2)
+
+        for data_item in [train_0, train_1, train_2]:
+            cur_num = data_item.shape[0]
+            while cur_num + data_item.shape[0] < max_train.shape[0]:
+                train_data = pd.concat([train_data, data_item])
+                cur_num += data_item.shape[0]
+
+        for data_item in [valid_0, valid_1, valid_2]:
+            cur_num = data_item.shape[0]
+            while cur_num + data_item.shape[0] < max_valid.shape[0]:
+                valid_data = pd.concat([valid_data, data_item])
+                cur_num += data_item.shape[0]
+
+
+        #train_class = train_data.pop("Class")
+        #valid_class = valid_data.pop("Class")
+
+        train_data.to_csv("./model/train_data.csv", index=False)
+        #train_class.to_csv("./model/train_class.csv", index=False)
+        valid_data.to_csv("./model/valid_data.csv", index=False)
+        #valid_class.to_csv("./model/valid_class.csv", index=False)
+
         db_session.commit()
         return "", 200
 
@@ -394,7 +472,15 @@ def change_model():
         body = request.get_json()
         body = parse_body_values(conn, body)
         
-        #if body["modelMethod"] == "Increment":
+        if body["modelMethod"] == "Increment":
+
+            input_data = tf.convert_to_tensor(train_data_pd.values.reshape(-1, 1, train_data_pd.shape[1]))
+            input_labels = tf.convert_to_tensor(train_class_pd.values.reshape(-1, 1, 1), dtype=tf.float32)
+            valid_data = tf.convert_to_tensor(valid_data_pd.values.reshape(-1, 1, valid_data_pd.shape[1]))
+            valid_labels = tf.convert_to_tensor(valid_class_pd.values.reshape(-1, 1, 1), dtype=tf.float32)
+
+            model = tf.keras.models.load_model("./model.h5")
+            model.fit(x=input_data, y=input_labels, epochs=10, batch_size=BATCH_SIZE)
 
 @login_manager.user_loader
 def load_user(user_id):
