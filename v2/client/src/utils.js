@@ -238,3 +238,20 @@ export function remakeModel(callback=()=>{return}) {
         callback(err);
     });
 };
+
+export function retrieveModel(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_MODEL_PATH"],
+        data: {
+            modelMethod: "retrieval"
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};

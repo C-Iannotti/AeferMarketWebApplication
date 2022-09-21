@@ -1,6 +1,6 @@
 from math import prod
 from xmlrpc.client import Boolean
-from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean, Integer
+from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean, Integer, ARRAY, BigInteger, TIMESTAMP
 from database import Base
 from flask_login import UserMixin
 import simplejson as json
@@ -90,7 +90,7 @@ class Users(Base, UserMixin):
 class ModelData(Base):
     __tablename__ = "ModelData"
     branch = Column("Branch", String, primary_key=True)
-    product_line = Column("ProductLine", String)
+    product_line = Column("ProductLine", String, primary_key=True)
     date = Column("Date", Date, primary_key=True)
     quantity = Column("Quantity", Integer)
 
@@ -102,5 +102,26 @@ class ModelData(Base):
 
     def __repr__(self):
         return f'<ModelData branch={self.branch} product_line={self.product_line} date={self.date} quantity={self.quantity}>'
+
+class ModelWeights(Base):
+    __tablename__ = "ModelWeights"
+    id = Column("id", BigInteger, primary_key=True)
+    timestamp = Column("Timestamp", TIMESTAMP)
+    layer_1 = Column("Layer1", ARRAY(Numeric))
+    layer_2 = Column("Layer2", ARRAY(Numeric))
+    layer_3 = Column("Layer3", ARRAY(Numeric))
+    layer_4 = Column("Layer4", ARRAY(Numeric))
+    layer_5 = Column("Layer5", ARRAY(Numeric))
+
+    def __init__(self, timestamp=None, layer_1=None, layer_2=None, layer_3=None, layer_4=None, layer_5=None):
+        self.timestamp = timestamp
+        self.layer_1 = layer_1
+        self.layer_2 = layer_2
+        self.layer_3 = layer_3
+        self.layer_4 = layer_4
+        self.layer_5 = layer_5
+
+    def __repr__(self):
+        return f'<ModelWeights id={self.id}>'
 
     

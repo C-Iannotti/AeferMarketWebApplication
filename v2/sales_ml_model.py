@@ -1,5 +1,8 @@
 import tensorflow as tf
+import numpy as np
 from collections import OrderedDict
+from models import ModelWeights
+from datetime import datetime
 
 class MLModel:
     BATCH_SIZE = 256
@@ -14,7 +17,7 @@ class MLModel:
         if first_model:
             model = tf.keras.models.Sequential([
                 tf.keras.layers.LSTM(units=30, input_shape=(1, 24), return_sequences=True, name="lstm"),
-                tf.keras.layers.Dense(units=1),
+                tf.keras.layers.Dense(units=1, name="dense"),
                 tf.keras.layers.Reshape([1,-1])
             ])
             loss = tf.keras.losses.MeanSquaredError()
@@ -26,11 +29,44 @@ class MLModel:
                 metrics=metrics
             )
             self.model = model
-            self.train_model(25)
         else:
             model = tf.keras.models.load_model("model/model.h5")
             self.model = model
+    
+    def set_model(self, weights):
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.LSTM(
+                units=30,
+                input_shape=(1, 24),
+                return_sequences=True,
+                name="lstm"),
+            tf.keras.layers.Dense(
+                units=1,
+                name="dense"
+                ),
+            tf.keras.layers.Reshape([1,-1])
+        ])
+        loss = tf.keras.losses.MeanSquaredError()
+        optimizer = tf.keras.optimizers.RMSprop(learning_rate=0.0005)
+        metrics = [tf.keras.metrics.CategoricalCrossentropy(), tf.keras.metrics.MeanSquaredError()]
+        model.compile(
+            optimizer=optimizer,
+            loss=loss,
+            metrics=metrics
+        )
 
+        i = 0
+        if i+3 <= len(weights):
+            model.get_layer("lstm").set_weights(weights=[np.asarray(weights[i]), np.asarray(weights[i+1]), np.asarray(weights[i+2])])
+        i += 3
+
+        if i+2 <= len(weights):
+            model.get_layer("dense").set_weights(weights=[np.asarray(weights[i]), np.asarray(weights[i+1])])
+        i += 2
+
+        self.model = model
+        self.model.save("model/model.h5")
+        
     def remake_model(self):
         model = tf.keras.models.Sequential([
             tf.keras.layers.LSTM(units=30, input_shape=(1, 24), return_sequences=True, name="lstm"),
@@ -47,8 +83,8 @@ class MLModel:
         )
         self.model = model
 
-        train_acc, valid_acc = self.train_model(25)
-        return train_acc, valid_acc
+        new_model, train_acc, valid_acc = self.train_model(25)
+        return new_model, train_acc, valid_acc
 
     def train_model(self, epochs):
         train_ds = tf.data.experimental.make_csv_dataset(
@@ -71,10 +107,7 @@ class MLModel:
         valid_ds = valid_ds.map(self.map_func)
 
         self.model.fit(x=train_ds, epochs=epochs, batch_size=self.BATCH_SIZE)
-
         self.model.save("model/model.h5")
-
-        print("Here")
 
         num_accur_train = 0
         total_train = 0
@@ -94,4 +127,16 @@ class MLModel:
         valid_acc = num_accur_valid / total_valid
 
         model_weights = self.model.get_weights()
-        return train_acc, valid_acc
+        for i in range(len(model_weights)):
+            model_weights[i] = model_weights[i].tolist()
+
+        new_model = ModelWeights(
+            timestamp=datetime.now(),
+            layer_1= model_weights[0] if 0 < len(model_weights) else None,
+            layer_2= model_weights[1] if 1 < len(model_weights) else None,
+            layer_3= model_weights[2] if 2 < len(model_weights) else None,
+            layer_4= model_weights[3] if 3 < len(model_weights) else None,
+            layer_5= model_weights[4] if 4 < len(model_weights) else None,
+        )
+
+        return new_model, train_acc, valid_acc

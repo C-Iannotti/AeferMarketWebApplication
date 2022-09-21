@@ -57,6 +57,9 @@ def parse_body_values(conn, body):
     if "dataMethod" not in body:
         body["dataMethod"] = "append"
 
+    if "searchDate" not in body:
+        body["searchDate"] = datetime.datetime.now()
+
     return body
 
 @app.get("/", defaults={"path": ""})
@@ -472,16 +475,34 @@ def change_model():
     with db_session.connection() as conn:
         body = request.get_json()
         body = parse_body_values(conn, body)
-        print(body)
+        new_model = None
+        train_acc, valid_acc = None, None
+        res = {}
         
         if body["modelMethod"].lower() == "increment":
-            train_acc, valid_acc = model.train_model(10)
+            new_model, res["trainAccuracy"], res["validAccuracy"] = model.train_model(10)
 
         if body["modelMethod"].lower() == "remake":
-            print("Why")
-            train_acc, valid_acc = model.remake_model()
+            new_model, res["trainAccuracy"], res["validAccuracy"] = model.remake_model()
 
-        res = make_response({"trainAccuracy": train_acc, "validAccuracy": valid_acc})
+        if body["modelMethod"].lower() == "retrieval":
+            query_results = conn.execute(f"""
+                SELECT id, "Timestamp", "Layer1", "Layer2", "Layer3", "Layer4", "Layer5"
+                FROM "ModelWeights"
+                WHERE "Timestamp" < '{body["searchDate"]}'
+                ORDER BY "Timestamp" DESC
+                LIMIT 1
+            """)
+            weights = []
+            for line in query_results:
+                weights = [line[2:]]
+            model.set_model(weights)
+        
+        if new_model:
+            db_session.add(new_model)
+            db_session.commit()
+
+        res = make_response(res)
         return res
 
 @login_manager.user_loader

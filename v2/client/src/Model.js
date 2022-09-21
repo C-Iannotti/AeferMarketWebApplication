@@ -4,7 +4,8 @@ import {
     replaceModelData,
     appendModelData,
     incrementModel,
-    remakeModel
+    remakeModel,
+    retrieveModel
 } from "./utils.js";
 
 class Model extends React.Component {
@@ -15,10 +16,12 @@ class Model extends React.Component {
         this.appendModelData = appendModelData.bind(this);
         this.incrementModel = incrementModel.bind(this);
         this.remakeModel = remakeModel.bind(this);
+        this.retrieveModel = retrieveModel.bind(this);
         this.handleAppendModelData = this.handleAppendModelData.bind(this);
         this.handleReplaceModelData = this.handleReplaceModelData.bind(this);
         this.handleIncrementModel = this.handleIncrementModel.bind(this);
         this.handleRemakeModel = this.handleRemakeModel.bind(this);
+        this.handleRetrieveModel = this.handleRetrieveModel.bind(this);
     }
     handleAppendModelData() {
         this.appendModelData((err, res) => {
@@ -56,10 +59,19 @@ class Model extends React.Component {
         });
     }
 
+    handleRetrieveModel() {
+        this.retrieveModel((err, res) => {
+            if (err) console.error(err);
+            else {
+                console.log(res);
+            }
+        });
+    }
+
     render() {
         return (
             <div className="model-page">
-                <button type="button">Retrieve Old Model</button>
+                <button type="button" onClick={this.handleRetrieveModel}>Retrieve Old Model</button>
                 <button type="button" onClick={this.handleIncrementModel}>Train model</button>
                 <button type="button" onClick={this.handleRemakeModel}>Reinitialize Model</button>
                 <button type="button" onClick={this.handleAppendModelData}>Append Data</button>
