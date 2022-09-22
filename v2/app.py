@@ -57,7 +57,7 @@ def parse_body_values(conn, body):
     if "dataMethod" not in body:
         body["dataMethod"] = "append"
 
-    if "searchDate" not in body:
+    if "searchDate" not in body or not body["searchDate"]:
         body["searchDate"] = datetime.datetime.now()
 
     return body
@@ -495,6 +495,8 @@ def change_model():
             """)
             weights = []
             for line in query_results:
+                res["id"] = line[0]
+                res["timestamp"] = line[1]
                 weights = [line[2:]]
             model.set_model(weights)
         

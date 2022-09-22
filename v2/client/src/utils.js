@@ -239,12 +239,13 @@ export function remakeModel(callback=()=>{return}) {
     });
 };
 
-export function retrieveModel(callback=()=>{return}) {
+export function retrieveModel(searchDate, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_MODEL_PATH"],
         data: {
-            modelMethod: "retrieval"
+            modelMethod: "retrieval",
+            searchDate
         },
         withCredentials: true
     })

@@ -31,6 +31,15 @@ class Model extends React.Component {
             }
         });
     }
+    componentDidMount() {
+        let date = new Date();
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+
+        date.setMilliseconds(null);
+        date.setSeconds(null);
+
+        document.getElementById("model-retrieval-date").value = date.toISOString().slice(0, -1);
+    }
 
     handleReplaceModelData() {
         this.replaceModelData((err, res) => {
@@ -60,7 +69,9 @@ class Model extends React.Component {
     }
 
     handleRetrieveModel() {
-        this.retrieveModel((err, res) => {
+        let searchDate = document.getElementById("model-retrieval-date").value
+        console.log(searchDate)
+        this.retrieveModel(searchDate, (err, res) => {
             if (err) console.error(err);
             else {
                 console.log(res);
@@ -71,6 +82,7 @@ class Model extends React.Component {
     render() {
         return (
             <div className="model-page">
+                <input type="datetime-local" id="model-retrieval-date" className="model-retrieval-date" />
                 <button type="button" onClick={this.handleRetrieveModel}>Retrieve Old Model</button>
                 <button type="button" onClick={this.handleIncrementModel}>Train model</button>
                 <button type="button" onClick={this.handleRemakeModel}>Reinitialize Model</button>
