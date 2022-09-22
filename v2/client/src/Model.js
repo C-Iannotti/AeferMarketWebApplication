@@ -32,13 +32,20 @@ class Model extends React.Component {
         });
     }
     componentDidMount() {
-        let date = new Date();
-        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-
-        date.setMilliseconds(null);
-        date.setSeconds(null);
-
-        document.getElementById("model-retrieval-date").value = date.toISOString().slice(0, -1);
+        this.props.checkLogin((err, res) => {
+            if (err) {
+                this.props.navigate("/login");
+            }
+            else {
+                let date = new Date();
+                date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        
+                date.setMilliseconds(null);
+                date.setSeconds(null);
+        
+                document.getElementById("model-retrieval-date").value = date.toISOString().slice(0, -1);
+            }
+        });
     }
 
     handleReplaceModelData() {
@@ -80,16 +87,25 @@ class Model extends React.Component {
     }
 
     render() {
-        return (
-            <div className="model-page">
-                <input type="datetime-local" id="model-retrieval-date" className="model-retrieval-date" />
-                <button type="button" onClick={this.handleRetrieveModel}>Retrieve Old Model</button>
-                <button type="button" onClick={this.handleIncrementModel}>Train model</button>
-                <button type="button" onClick={this.handleRemakeModel}>Reinitialize Model</button>
-                <button type="button" onClick={this.handleAppendModelData}>Append Data</button>
-                <button type="button" onClick={this.handleReplaceModelData}>Replace Data</button>
-            </div>
-        )
+        if (this.props.authenticated) {
+            return (
+                <div className="model-page">
+                    <input type="datetime-local" id="model-retrieval-date" className="model-retrieval-date" />
+                    <button type="button" onClick={this.handleRetrieveModel}>Retrieve Old Model</button>
+                    <button type="button" onClick={this.handleIncrementModel}>Train model</button>
+                    <button type="button" onClick={this.handleRemakeModel}>Reinitialize Model</button>
+                    <button type="button" onClick={this.handleAppendModelData}>Append Data</button>
+                    <button type="button" onClick={this.handleReplaceModelData}>Replace Data</button>
+                </div>
+            )
+        }
+        else {
+            return (
+                <div id="authentication-page" className="authentication-page">
+                    <p>Waiting to be authenticated...</p>
+                </div>
+            )
+        }
     }
 }
 

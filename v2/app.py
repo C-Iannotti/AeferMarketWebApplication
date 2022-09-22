@@ -507,6 +507,31 @@ def change_model():
         res = make_response(res)
         return res
 
+@app.post("/api/retrieve-tables")
+@login_required
+def retrieve_tables():
+    res = []
+    if current_user.view_sales:
+        res.append({
+            "table": "Sales",
+            "columns": ["InvoiceID", "Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "GrossMarginPercentage", "GrossIncome", "Rating"]
+        })
+
+    if current_user.view_logs:
+        res.append({
+            "table": "Logs",
+            "columns": []
+        })
+
+    if current_user.view_models:
+        res.append({
+            "table": "ModelWeights",
+            "columns": ["id", "Timestamp"]
+        })
+
+    res = make_response({"results": res})
+    return res
+
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(user_id)

@@ -77,12 +77,18 @@ class Users(Base, UserMixin):
     username = Column("Username", String)
     password = Column("Password", String)
     alter_model = Column("AlterModel", Boolean)
+    view_sales = Column("ViewSales", Boolean)
+    view_logs = Column("ViewLogs", Boolean)
+    view_models = Column("ViewModels", Boolean)
 
-    def __init__(self, id=None, username=None, password=None, alter_model=None):
+    def __init__(self, id=None, username=None, password=None, alter_model=None, view_logs=None, view_sales=None, view_models=None):
         self.id = id
         self.username = username
         self.password = password
         self.alter_model = alter_model
+        self.view_sales = view_sales
+        self.view_logs = view_logs
+        self.view_models = view_models
 
     def __repr__(self):
         return f'<User id={self.id}>'

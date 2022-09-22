@@ -256,3 +256,17 @@ export function retrieveModel(searchDate, callback=()=>{return}) {
         callback(err);
     });
 };
+
+export function getTables(callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_TABLES_PATH"],
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+}
