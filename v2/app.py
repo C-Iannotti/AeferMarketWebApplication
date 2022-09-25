@@ -60,6 +60,27 @@ def parse_body_values(conn, body):
     if "searchDate" not in body or not body["searchDate"]:
         body["searchDate"] = datetime.datetime.now()
 
+    if "table" in body and body["table"].lower() == "sales":
+        body["table"] = "Sales"
+    elif "table" in body and body["table"].lower() == "logs":
+        body["table"] = "Logs"
+    else:
+        body["table"] = "ModelWeights"
+
+    if "constraints" not in body or not isinstance(body["constraints"], list):
+        body["constraints"] = []
+
+    if "columns" not in body or not isinstance(body["columns"], list):
+        body["columns"] = []
+
+    if "pageNumber" not in body:
+        body["pageNumber"] = 0
+    else:
+        try:
+            body["pageNumber"] = int(body["pageNumber"])
+        except:
+            body["pageNumber"] = 0
+
     return body
 
 @app.get("/", defaults={"path": ""})
@@ -531,6 +552,55 @@ def retrieve_tables():
 
     res = make_response({"results": res})
     return res
+
+@app.post("/api/retrieve-table-data")
+@login_required
+def retrieve_table_data():
+    with db_session.connection() as conn:
+        body = request.get_json()
+        body = parse_body_values(conn, body)
+        res = {}
+        table = None
+
+        if body["table"] == "Sales" and current_user.view_sales:
+            table = "Sales"
+
+        if body["table"] == "Logs" and current_user.view_logs:
+            table = "Logs"
+
+        if body["table"] == "ModelWeights" and current_user.view_models:
+            table = "ModelWeights"
+
+        if table is not None:
+            constraints = []
+            columns = []
+            columns_order = []
+
+            for item in body["constraints"]:
+                if not isinstance(item, list) or len(item) != 3: continue
+                if not isinstance(item[0], str) or '"' in item[0]: continue
+                if not isinstance(item[2], str) or "'" in item[2]: continue
+                if item[1] != "=" and item[1] != ">=" and item[1] != "<=": continue
+                constraints.append('"' + item[0] + '"' + item[1] + "'" + item[2] + "'")
+
+            for item in body["columns"]:
+                if not isinstance(item, list) or len(item) != 2: continue
+                if not isinstance(item[0], str) or '"' in item[0]: continue
+                if item[1] != "ASC" and item[1] != "DESC": continue
+                columns.append('"' + item[0] + '"')
+                columns_order.append('"' + item[0] + '"' + " " + item[1])
+                
+        query_results = conn.execute(f"""
+            SELECT {", ".join(columns) if len(columns) > 0 else "*"}
+            FROM "{table}"
+            {"WHERE " + " AND ".join(constraints) if len(constraints) > 0 else ""}
+            {"ORDER BY " + ", ".join(columns_order) if len(columns_order) > 0 else ""}
+            LIMIT {os.getenv("PAGE_SIZE")} OFFSET {body["pageNumber"] * int(os.getenv("PAGE_SIZE"))}
+        """)
+        for line in query_results:
+            print(line)
+        res = make_response(res)
+        return res
 
 @login_manager.user_loader
 def load_user(user_id):

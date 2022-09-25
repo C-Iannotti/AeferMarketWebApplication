@@ -269,4 +269,24 @@ export function getTables(callback=()=>{return}) {
     .catch(err => {
         callback(err);
     });
-}
+};
+
+export function getTableData(table, constraints, columns, pageNumber, callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_TABLE_DATA_PATH"],
+        data: {
+            table,
+            constraints,
+            columns,
+            pageNumber
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+};

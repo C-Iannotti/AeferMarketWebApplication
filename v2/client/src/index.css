@@ -98,3 +98,13 @@ code {
 .predict-same {
   color: darkgray;
 }
+
+.query-specifications {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.specifications-group {
+  width: 250px; 
+}
