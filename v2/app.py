@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import tensorflow as tf
 import pandas as pd
 from sales_ml_model import MLModel
+import simplejson as json
 
 load_dotenv()
 
@@ -491,7 +492,7 @@ def update_model_data():
 @login_required
 def change_model():
     if not current_user.alter_model:
-            return "", 403
+        return "", 403
 
     with db_session.connection() as conn:
         body = request.get_json()
@@ -535,19 +536,22 @@ def retrieve_tables():
     if current_user.view_sales:
         res.append({
             "table": "Sales",
-            "columns": ["InvoiceID", "Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "GrossMarginPercentage", "GrossIncome", "Rating"]
+            "pkColumns": ["InvoiceID"],
+            "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "GrossMarginPercentage", "GrossIncome", "Rating"]
         })
 
     if current_user.view_logs:
         res.append({
             "table": "Logs",
+            "pkColumns": [],
             "columns": []
         })
 
     if current_user.view_models:
         res.append({
             "table": "ModelWeights",
-            "columns": ["id", "Timestamp"]
+            "pkColumns": ["id"],
+            "columns": ["Timestamp"]
         })
 
     res = make_response({"results": res})
@@ -559,17 +563,22 @@ def retrieve_table_data():
     with db_session.connection() as conn:
         body = request.get_json()
         body = parse_body_values(conn, body)
-        res = {}
+        res = {"results": []}
         table = None
+        pk_columns = []
 
         if body["table"] == "Sales" and current_user.view_sales:
             table = "Sales"
+            pk_columns = ['"InvoiceID"']
+            if current_user.edit_sales: res["editable"] = True
 
         if body["table"] == "Logs" and current_user.view_logs:
             table = "Logs"
+            pk_columns = []
 
         if body["table"] == "ModelWeights" and current_user.view_models:
             table = "ModelWeights"
+            pk_columns = ['"id"']
 
         if table is not None:
             constraints = []
@@ -591,16 +600,52 @@ def retrieve_table_data():
                 columns_order.append('"' + item[0] + '"' + " " + item[1])
                 
         query_results = conn.execute(f"""
-            SELECT {", ".join(columns) if len(columns) > 0 else "*"}
+            SELECT {", ".join(pk_columns + columns) if len(columns) > 0 else "*"}
             FROM "{table}"
             {"WHERE " + " AND ".join(constraints) if len(constraints) > 0 else ""}
             {"ORDER BY " + ", ".join(columns_order) if len(columns_order) > 0 else ""}
             LIMIT {os.getenv("PAGE_SIZE")} OFFSET {body["pageNumber"] * int(os.getenv("PAGE_SIZE"))}
         """)
+        
+        res["columns"] = [item for item in list(query_results.keys()) if '"' + item + '"' not in pk_columns]
         for line in query_results:
-            print(line)
-        res = make_response(res)
+            res["results"].append(line[:])
+
+        return json.dumps(res, default=str)
+
+@app.post("/api/update-sales-data")
+@login_required
+def update_sales_data():
+    if not current_user.edit_sales:
+        return "", 403
+        
+    with db_session.connection() as conn:
+        body = request.get_json()
+        primary_key_columns = ["InvoiceID"]
+        if "columns" not in body or isinstance(body["columns"], list):
+            body["columns"] = []
+        if "data" not in body:
+            body["data"] = []
+        
+        if "primaryKeys" not in body:
+            body["primaryKeys"] = []
+
+        for i, row in enumerate(body["data"]):
+            print(f"""
+                UPDATE "Sales"
+                SET {", ".join(['"' + body["columns"][j] + '"' + "'" + row[j] + "'" for j in range(len(row))])}
+                WHERE {", ".join(['"' + primary_key_columns[j] + '"' + "'" + body["primaryKeys"][i][j] for j in range(len(primary_key_columns))])}
+            """)
+            break
+            #query_results = conn.execute(f"""
+            #    UPDATE "Sales"
+            #    SET {", ".join(['"' + body["columns"][j] + '"' + "'" + row[j] + "'" for j in range(len(row))])}
+            #    WHERE {", ".join(['"' + primary_key_columns[j] + '"' + "'" + body["primaryKeys"][i][j] for j in range(len(primary_key_columns))])}
+            #""")
+
+        res = make_response({})
         return res
+
 
 @login_manager.user_loader
 def load_user(user_id):

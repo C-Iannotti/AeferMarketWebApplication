@@ -77,7 +77,6 @@ class Model extends React.Component {
 
     handleRetrieveModel() {
         let searchDate = document.getElementById("model-retrieval-date").value
-        console.log(searchDate)
         this.retrieveModel(searchDate, (err, res) => {
             if (err) console.error(err);
             else {

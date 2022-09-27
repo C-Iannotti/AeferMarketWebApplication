@@ -290,3 +290,21 @@ export function getTableData(table, constraints, columns, pageNumber, callback=(
         callback(err);
     });
 };
+
+export function updateSalesData(pkData, data, callback=()=>{return}) {
+    axios({
+        method: "post",
+        url: SERVER_URL + process.env["REACT_APP_UPDATE_SALES_PATH"],
+        data: {
+            pkData,
+            data
+        },
+        withCredentials: true
+    })
+    .then(res => {
+        callback(null, res);
+    })
+    .catch(err => {
+        callback(err);
+    });
+}
