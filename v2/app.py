@@ -5,7 +5,7 @@ from flask import Flask, send_from_directory, make_response, request, session
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user
 from database import db_session, init_db
-from models import Sales, Users, ModelData
+from models import Sales, Users, ModelData, Logs
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import tensorflow as tf
@@ -113,6 +113,8 @@ def login():
         session.permanent = True
         user = Users.query.get(result[0])
         login_user(user, duration=datetime.timedelta(minutes=30))
+        db_session.add(Logs(user=current_user.id, action="LOGIN", timestamp=datetime.datetime.now()))
+        db_session.commit()
         res = make_response({ "message": "Logged in"})
         return res
 
@@ -484,6 +486,7 @@ def update_model_data():
         valid_data.to_csv("./model/valid_data.csv", index=False)
         #valid_class.to_csv("./model/valid_class.csv", index=False)
 
+        db_session.add(Logs(user=current_user.id, action="UPDATE", table="ModelData", timestamp=datetime.datetime.now()))
         db_session.commit()
         return "", 200
 
@@ -524,6 +527,7 @@ def change_model():
         
         if new_model:
             db_session.add(new_model)
+            db_session.add(Logs(user=current_user.id, action="UPDATE", table="ModelWeights", timestamp=datetime.datetime.now()))
             db_session.commit()
 
         res = make_response(res)
@@ -538,13 +542,6 @@ def retrieve_tables():
             "table": "Sales",
             "pkColumns": ["InvoiceID"],
             "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
-        })
-
-    if current_user.view_logs:
-        res.append({
-            "table": "Logs",
-            "pkColumns": [],
-            "columns": []
         })
 
     if current_user.view_models:
@@ -574,7 +571,7 @@ def retrieve_table_data():
 
         if body["table"] == "Logs" and current_user.view_logs:
             table = "Logs"
-            pk_columns = []
+            pk_columns = ['"id"']
 
         if body["table"] == "ModelWeights" and current_user.view_models:
             table = "ModelWeights"
@@ -611,6 +608,8 @@ def retrieve_table_data():
         for line in query_results:
             res["results"].append(line[:])
 
+        db_session.add(Logs(user=current_user.id, action="VIEW", table=table, timestamp=datetime.datetime.now()))
+        db_session.commit()
         return json.dumps(res, default=str)
 
 @app.post("/api/update-sales-data")
@@ -624,19 +623,28 @@ def update_sales_data():
         primary_key_columns = ["InvoiceID"]
         if "columns" not in body or not isinstance(body["columns"], list):
             body["columns"] = ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
-        
         if "data" not in body:
             body["data"] = []
         if "pkData" not in body:
             body["pkData"] = []
 
+        for column in body["columns"]:
+            if '"' in column: return "", 400
         for i, row in enumerate(body["data"]):
+            valid = True
+            for item in row:
+                if "'" in item: valid = False
+            for item in body["pkData"][i]:
+                if "'" in item: valid = False
+            if not valid: continue
+
             query_results = conn.execute(f"""
                 UPDATE "Sales"
                 SET {", ".join(['"' + body["columns"][j] + '"=' + "'" + row[j] + "'" for j in range(len(row))])}
                 WHERE {", ".join(['"' + primary_key_columns[j] + '"=' + "'" + body["pkData"][i][j] + "'" for j in range(len(primary_key_columns))])}
             """)
 
+        db_session.add(Logs(user=current_user.id, action="UPDATE", table="Sales", timestamp=datetime.datetime.now()))
         db_session.commit()
         res = make_response({})
         return res

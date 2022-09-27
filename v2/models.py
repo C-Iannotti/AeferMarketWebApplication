@@ -1,6 +1,6 @@
 from math import prod
 from xmlrpc.client import Boolean
-from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean, Integer, ARRAY, BigInteger, TIMESTAMP
+from sqlalchemy import Column, String, SmallInteger, Date, Time, Numeric, Boolean, Integer, ARRAY, BigInteger, TIMESTAMP, ForeignKey
 from database import Base
 from flask_login import UserMixin
 import simplejson as json
@@ -134,5 +134,23 @@ class ModelWeights(Base):
 
     def __repr__(self):
         return f'<ModelWeights id={self.id}>'
+
+class Logs(Base):
+    __tablename__ = "Logs"
+    id = Column("id", BigInteger, primary_key=True)
+    user = Column("User", BigInteger, ForeignKey(Users.id))
+    action = Column("Action", String)
+    table = Column("Table", String)
+    timestamp = timestamp = Column("Timestamp", TIMESTAMP)
+
+    def __init__(self, user=None, action=None, table=None, timestamp=None):
+        self.user = user
+        self.action = action
+        self.table = table
+        self.timestamp = timestamp
+    
+    def __repr__(self):
+        return f'<Logs id={self.id}>'
+
 
     
