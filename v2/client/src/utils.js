@@ -291,13 +291,14 @@ export function getTableData(table, constraints, columns, pageNumber, callback=(
     });
 };
 
-export function updateSalesData(pkData, data, callback=()=>{return}) {
+export function updateSalesData(pkData, data, columns, callback=()=>{return}) {
     axios({
         method: "post",
         url: SERVER_URL + process.env["REACT_APP_UPDATE_SALES_PATH"],
         data: {
             pkData,
-            data
+            data,
+            columns
         },
         withCredentials: true
     })

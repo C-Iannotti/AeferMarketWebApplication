@@ -537,7 +537,7 @@ def retrieve_tables():
         res.append({
             "table": "Sales",
             "pkColumns": ["InvoiceID"],
-            "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "GrossMarginPercentage", "GrossIncome", "Rating"]
+            "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
         })
 
     if current_user.view_logs:
@@ -622,27 +622,22 @@ def update_sales_data():
     with db_session.connection() as conn:
         body = request.get_json()
         primary_key_columns = ["InvoiceID"]
-        if "columns" not in body or isinstance(body["columns"], list):
-            body["columns"] = []
+        if "columns" not in body or not isinstance(body["columns"], list):
+            body["columns"] = ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
+        
         if "data" not in body:
             body["data"] = []
-        
-        if "primaryKeys" not in body:
-            body["primaryKeys"] = []
+        if "pkData" not in body:
+            body["pkData"] = []
 
         for i, row in enumerate(body["data"]):
-            print(f"""
+            query_results = conn.execute(f"""
                 UPDATE "Sales"
-                SET {", ".join(['"' + body["columns"][j] + '"' + "'" + row[j] + "'" for j in range(len(row))])}
-                WHERE {", ".join(['"' + primary_key_columns[j] + '"' + "'" + body["primaryKeys"][i][j] for j in range(len(primary_key_columns))])}
+                SET {", ".join(['"' + body["columns"][j] + '"=' + "'" + row[j] + "'" for j in range(len(row))])}
+                WHERE {", ".join(['"' + primary_key_columns[j] + '"=' + "'" + body["pkData"][i][j] + "'" for j in range(len(primary_key_columns))])}
             """)
-            break
-            #query_results = conn.execute(f"""
-            #    UPDATE "Sales"
-            #    SET {", ".join(['"' + body["columns"][j] + '"' + "'" + row[j] + "'" for j in range(len(row))])}
-            #    WHERE {", ".join(['"' + primary_key_columns[j] + '"' + "'" + body["primaryKeys"][i][j] for j in range(len(primary_key_columns))])}
-            #""")
 
+        db_session.commit()
         res = make_response({})
         return res
 

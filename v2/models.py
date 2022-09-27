@@ -20,6 +20,7 @@ class Sales(Base):
     date = Column("Date", Date)
     time = Column("Time", Time)
     payment = Column("Payment", String)
+    cogs = Column("cogs", Numeric)
     gross_margin_percentage = Column("GrossMarginPercentage", Numeric)
     gross_income = Column("GrossIncome", Numeric)
     rating = Column("Rating", Numeric)
@@ -27,7 +28,7 @@ class Sales(Base):
     def __init__(self, id=None, branch=None, city=None, customer_type=None,
                  gender=None, product_line=None, unit_price=None,
                  quantity=None, tax=None, total=None, date=None,
-                 time=None, payment=None, gross_margin_percentage=None,
+                 time=None, payment=None, cogs=None, gross_margin_percentage=None,
                  gross_income=None, rating=None):
         self.id = id
         self.branch = branch
@@ -42,6 +43,7 @@ class Sales(Base):
         self.date = date
         self.time = time
         self.payment = payment
+        self.cogs = cogs
         self.gross_margin_percentage = gross_margin_percentage
         self.gross_income = gross_income
         self.rating = rating
@@ -64,6 +66,7 @@ class Sales(Base):
             "date": self.date,
             "time": self.time,
             "payment": self.payment,
+            "cogs": self.cogs,
             "grossMarginPercentage": self.gross_margin_percentage,
             "grossIncome": self.gross_income,
             "rating": self.rating
