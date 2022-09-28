@@ -40,7 +40,6 @@ class Data extends React.Component {
                         for (let i = 0; i < res.data.results.length; i++) {
                             tableColumns[res.data.results[i].table] =  {
                                 columns: res.data.results[i].columns,
-                                pkColumns: res.data.results[i].pkColumns
                             }
                             tables.push(res.data.results[i].table)
                         }
@@ -87,11 +86,13 @@ class Data extends React.Component {
         this.getTableData(table, constraints, columns, pageNumber, (err, res) => {
             if (err) console.error(err);
             else {
+                this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
                 this.setState({
                     queryColumns: res.data.columns,
                     queryData: res.data.results,
                     editable: res.data.editable,
-                    curQueryTable: this.state.curQueryTable + 1
+                    curQueryTable: this.state.curQueryTable + 1,
+                    tableColumns: this.state.tableColumns
                 });
             }
         })
@@ -219,14 +220,14 @@ class Data extends React.Component {
                             {this.state.tableColumns &&
                             <tr>
                                 {this.state.queryColumns && this.state.tableColumns[this.state.curTable].pkColumns.map(x => {
-                                    return <th>{x}</th>
+                                    return <th key={x}>{x}</th>
                                 })}
-                                {this.state.queryColumns && this.state.queryColumns.map(x => <th className="query-table-column">{x}</th>)}
+                                {this.state.queryColumns && this.state.queryColumns.map(x => <th key={x} className="query-table-column">{x}</th>)}
                             </tr>
                             }
                         </thead>
-                        <tbody id="query-table-body">{this.state.queryData && this.state.queryData.map(x => {
-                            return <tr>{x.map((y, i) => <td suppressContentEditableWarning={true} contentEditable={i >= this.state.tableColumns[this.state.curTable].pkColumns.length && this.state.editQuery}>{y}</td>)}</tr>
+                        <tbody id="query-table-body">{this.state.queryData && this.state.queryData.map((x, j) => {
+                            return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i}suppressContentEditableWarning={true} contentEditable={i >= this.state.tableColumns[this.state.curTable].pkColumns.length && this.state.editQuery}>{y}</td>)}</tr>
                         })}</tbody>
                     </table>
                 </div>

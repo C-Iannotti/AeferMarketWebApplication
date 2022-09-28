@@ -540,14 +540,12 @@ def retrieve_tables():
     if current_user.view_sales:
         res.append({
             "table": "Sales",
-            "pkColumns": ["InvoiceID"],
             "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
         })
 
     if current_user.view_models:
         res.append({
             "table": "ModelWeights",
-            "pkColumns": ["id"],
             "columns": ["Timestamp"]
         })
 
@@ -567,15 +565,18 @@ def retrieve_table_data():
         if body["table"] == "Sales" and current_user.view_sales:
             table = "Sales"
             pk_columns = ['"InvoiceID"']
+            res["pkColumns"] = ['InvoiceID']
             if current_user.edit_sales: res["editable"] = True
 
         if body["table"] == "Logs" and current_user.view_logs:
             table = "Logs"
             pk_columns = ['"id"']
+            res["pkColumns"] = ['id']
 
         if body["table"] == "ModelWeights" and current_user.view_models:
             table = "ModelWeights"
             pk_columns = ['"id"']
+            res["pkColumns"] = ['id']
 
         if table is not None:
             constraints = []
@@ -595,6 +596,8 @@ def retrieve_table_data():
                 if item[1] != "ASC" and item[1] != "DESC": continue
                 columns.append('"' + item[0] + '"')
                 columns_order.append('"' + item[0] + '"' + " " + item[1])
+
+            if table == "Logs" and "Timestamp" not in columns_order: columns_order.append('"Timestamp" DESC')
                 
         query_results = conn.execute(f"""
             SELECT {", ".join(pk_columns + columns) if len(columns) > 0 else "*"}
