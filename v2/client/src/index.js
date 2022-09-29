@@ -40,7 +40,10 @@ class App extends React.Component {
       else {
         this.setState({
           authenticated: res.data.isAuthenticated,
-          username: res.data.username
+          username: res.data.username,
+          dataAccess: res.data.dataAccess,
+          modelAccess: res.data.modelAccess,
+          logsAccess: res.data.logsAccess
         }, () => callback(null, res));
       }
     });
@@ -49,14 +52,22 @@ class App extends React.Component {
   setLogoutState() {
     this.setState({
       username: undefined,
-      authenticated: false
+      authenticated: false,
+      dataAccess: undefined,
+      modelAccess: undefined,
+      logsAccess: undefined
     });
   }
 
   render() {
     return (
       <BrowserRouter>
-        {this.state.authenticated && <Header username={this.state.username} setLogoutState={this.setLogoutState} />}
+        {this.state.authenticated &&
+          <Header username={this.state.username}
+            setLogoutState={this.setLogoutState}
+            dataAccess={this.state.dataAccess}
+            modelAccess={this.state.modelAccess}
+            logsAccess={this.state.logsAccess}/>}
         <Routes>
           <Route path="/" element={<Home checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
           <Route path="/login" element={<Login checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />

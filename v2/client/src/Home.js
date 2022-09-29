@@ -333,26 +333,47 @@ class Home extends React.Component {
                         {this.state.graph1 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph1}
-                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                    options={{
+                                        plugins: {legend: false},
+                                        maintainAspectRatio: false
+                                    }}/>
                             </div>
                         }
                         {this.state.graph2 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph2}
-                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                    options={{
+                                        plugins: {legend: false},
+                                        maintainAspectRatio: false
+                                    }}/>
                             </div>
                         }
                     </div>
                     {this.state.graph3 &&
                         <div className="graph3">
                             <Bar data={this.state.graph3}
-                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                options={{
+                                    plugins: {legend: false},
+                                    maintainAspectRatio: false,
+                                    onResize: (newChart, newSize) => {
+                                        if (newSize.width < 856) {
+                                            newChart.options.scales.x.ticks.display = false;
+                                        }
+                                        else {
+                                            newChart.options.scales.x.ticks.display = true;
+                                        }
+                                    },
+                                    scale: {x: {ticks: {display: true}}}
+                                }}/>
                         </div>
                     }
                     {this.state.graph6 &&
                         <div className="graph3">
                             <Bar data={this.state.graph6}
-                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                options={{
+                                    plugins: {legend: false},
+                                    maintainAspectRatio: false
+                                }}/>
                         </div>
                     }
                 </div>
@@ -365,26 +386,38 @@ class Home extends React.Component {
                         {this.state.graph1 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph1}
-                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                    options={{
+                                        plugins: {legend: false},
+                                        maintainAspectRatio: false
+                                    }}/>
                             </div>
                         }
                         {this.state.graph2 &&
                             <div className="graph1">
                                 <Pie data={this.state.graph2}
-                                    options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                    options={{
+                                        plugins: {legend: false},
+                                        maintainAspectRatio: false
+                                    }}/>
                             </div>
                         }
                     </div>
                     {this.state.graph4 &&
                         <div className="graph4">
                             <Line data={this.state.graph4}
-                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                options={{
+                                    plugins: {legend: false},
+                                    maintainAspectRatio: false
+                                }}/>
                         </div>
                     }
                     {this.state.graph5 &&
                         <div className="graph4">
                             <Line data={this.state.graph5}
-                                options={{plugins: {legend: false}, maintainAspectRatio: false}}/>
+                                options={{
+                                    plugins: {legend: false},
+                                    maintainAspectRatio: false
+                                }}/>
                         </div>
                     }
                 </div>
@@ -424,30 +457,34 @@ class Home extends React.Component {
             return (
                 <div id="home-page" className="home-page">
                     {this.getKeyDisplay()}
-                    <select id="sales-branch-input" name="sales-branch-input">
-                        {this.state.branches && this.state.branches.map(x => {
-                            return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
-                        })}
-                    </select>
-                    <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
-                    <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
-                    <select id="sales-separate-on-input" name="sales-separate-on-input">
-                        <option value="gender">Gender</option>
-                        <option value="customertype">Customer Type</option>
-                    </select>
-                    <select id="sales-product-line-input" name="sales-product-line-input" multiple>
-                        {this.state.productLines && this.state.productLines.map(x => {
-                            return <option key={x} id={x} value={x} onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.target.selected= !e.target.selected
-                                }}>{x}</option>
-                        })}
-                    </select>
-                    <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
-                    <br />
+                    <div className="sales-query-inputs">
+                        <div className="sales-select-inputs">
+                            <select id="sales-branch-input" name="sales-branch-input">
+                                {this.state.branches && this.state.branches.map(x => {
+                                    return <option key={x[0]} id={x[0]} value={x[0]}>{x[0] + " - " + x[1]}</option>
+                                })}
+                            </select>
+                            <select id="sales-separate-on-input" name="sales-separate-on-input">
+                                <option value="gender">Gender</option>
+                                <option value="customertype">Customer Type</option>
+                            </select>
+                        </div>
+                        <div className="sales-date-inputs">
+                            <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
+                            <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
+                        </div>
+                        <select id="sales-product-line-input" name="sales-product-line-input" size="3" multiple>
+                            {this.state.productLines && this.state.productLines.map(x => {
+                                return <option key={x} id={x} value={x} onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.target.selected= !e.target.selected
+                                    }}>{x}</option>
+                            })}
+                        </select>
+                        <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
+                    </div>
                     {this.state.predictions && this.getPredictionsDisplay()}
                     {this.getGraphDisplay()}
-                    <br />
                     <div className="graph-display-page-buttons">
                         <button type="button" onClick={() => {this.setState({ pageNumber: 1})}}>Previous</button>
                         <button type="button" onClick={() => {this.setState({ pageNumber: 2})}}>Next</button>

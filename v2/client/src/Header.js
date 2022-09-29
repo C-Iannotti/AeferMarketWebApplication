@@ -31,12 +31,13 @@ class Header extends React.Component {
     render() {
         return (
             <div className="header">
-                <p>{this.props.username}</p>
-                <button type="button" id="home-button" onClick={() => this.handlePageChange("/")}>Home</button>
-                <button type="button" id="model-button" onClick={() => this.handlePageChange("/model")}>Model</button>
-                <button type="button" id="data-button" onClick={() => this.handlePageChange("/data")}>Data</button>
-                <button type="button" id="logs-button" onClick={() => this.handlePageChange("/logs")}>Logs</button>
-                <button type="button" id="logout-button" onClick={this.handleLogout}>Logout</button>
+                <div className="header-buttons">
+                    <div id="home-button" className="header-button" onClick={() => this.handlePageChange("/")}>Home</div>
+                    {this.props.modelAccess && <div id="model-button" className="header-button" onClick={() => this.handlePageChange("/model")}>Model</div>}
+                    {this.props.dataAccess && <div id="data-button" className="header-button" onClick={() => this.handlePageChange("/data")}>Data</div>}
+                    {this.props.logsAccess && <div id="logs-button" className="header-button" onClick={() => this.handlePageChange("/logs")}>Logs</div>}
+                </div>
+                <div id="header-username" className="header-username" onClick={this.handleLogout}>{this.props.username}</div>
             </div>
         )
     }

@@ -26,7 +26,12 @@ class Login extends React.Component {
         this.login(username, password, (err, res) => {
             if (err) console.error(err);
             else {
-                this.props.navigate("/");
+                this.props.checkLogin((err, res) => {
+                    if (err) console.error(err);
+                    else {
+                        this.props.navigate("/");
+                    }
+                })
             }
         });
     }

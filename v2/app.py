@@ -131,7 +131,10 @@ def authenticate():
     if current_user.is_authenticated:
         return make_response({
             "isAuthenticated": current_user.is_authenticated,
-            "username": current_user.username
+            "username": current_user.username,
+            "dataAccess": current_user.view_sales or current_user.view_models,
+            "logsAccess": current_user.view_logs,
+            "modelAccess": current_user.alter_model
             })
     else:
         return "", 401

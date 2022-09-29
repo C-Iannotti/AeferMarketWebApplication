@@ -18,8 +18,11 @@ body {
 .header {
   display: flex;
   flex-direction: row;
-  justify-content: space-around;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  border: black solid 1px;
 }
 
 code {
@@ -39,6 +42,8 @@ code {
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
+  margin: 0px;
   gap: 10px;
 }
 
@@ -48,6 +53,7 @@ code {
   justify-content: center;
   align-items: center;
   gap: 5px;
+  margin: 0px;
 }
 
 .color-box {
@@ -70,6 +76,9 @@ code {
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
+  flex-wrap: wrap;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .graph1 {
@@ -78,12 +87,12 @@ code {
 }
 
 .graph3 {
-  width: 70%;
+  width: 90%;
   height: 350px;
 }
 
 .graph4 {
-  width: 70%;
+  width: 90%;
   height: 350px;
 }
 
@@ -107,4 +116,50 @@ code {
 
 .specifications-group {
   width: 250px; 
+}
+
+.header-buttons {
+  display: flex;
+  flex-direction: row;
+  width: 60%;
+  justify-content: space-around;
+}
+
+.header-button {
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+.header-username {
+  cursor: pointer;
+  text-decoration: underline;
+  color:aqua;
+  padding-right: 15px;
+  font-size: 1.1em;
+}
+
+.sales-query-inputs {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  border: 1px solid black;
+  height: 65px;
+  gap: 10px;
+}
+
+.sales-select-inputs {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+  border: 1px solid red;
+  align-items: space-around;
+}
+
+.sales-date-inputs {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: space-around;
+  height: 100%;
 }
