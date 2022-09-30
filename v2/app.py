@@ -235,12 +235,12 @@ def quantity_per_hour():
 
         results = {}
         query_results = conn.execute(f"""
-            SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time") AS new_hour, FLOOR(EXTRACT(MINUTE FROM "Time") / 30) * 30 AS new_minute, SUM("Quantity")
+            SELECT {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time") AS new_hour, SUM("Quantity")
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
             {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
-            GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time"), FLOOR(EXTRACT(MINUTE FROM "Time") / 30)
+            GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time")
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'};
         """)
 
@@ -251,7 +251,7 @@ def quantity_per_hour():
             if line_0 not in results: results[line_0] = {}
             min_hour = min(min_hour, int(line[1]))
             max_hour = max(max_hour, int(line[1]))
-            results[line_0][str(datetime.time(hour=int(line[1]), minute=int(line[2])))] = line[3]
+            results[line_0][int(line[1])] = line[2]
         results["minHour"] = min_hour
         results["maxHour"] = max_hour
 

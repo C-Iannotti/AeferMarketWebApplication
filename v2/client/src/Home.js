@@ -1,15 +1,16 @@
-import React from 'react';
-import { withWrapper } from "./componentWrapper.js"
-import Chart from "chart.js/auto"
+import React, {useState} from 'react';
+import { useSwipeable } from "react-swipeable";
+import { withWrapper } from "./componentWrapper.js";
+import Chart from "chart.js/auto";
 import {
     borderColors,
     backgroundColors
-} from "./graphColors.js"
+} from "./graphColors.js";
 import {
     Pie,
     Bar,
     Line
-} from "react-chartjs-2"
+} from "react-chartjs-2";
 import {
     getSalesData,
     getRatingsData,
@@ -17,13 +18,116 @@ import {
     getColumnValues,
     getQuantityPerTimeUnit,
     getPredictedTrends
-} from "./utils.js"
+} from "./utils.js";
+
+function Carousel(props) {
+    const [carouselNumber, setCarouselNumber] = useState(0);
+    let max = Number(Boolean(props.graph3)) +
+            Number(Boolean(props.graph4)) +
+            Number(Boolean(props.graph5)) +
+            Number(Boolean(props.graph6))
+
+    const handleCarouselChange  = (num) => {
+
+        if (num < 0) num = max - 1
+        else num = num % max
+        
+        if (num >= 0) {
+            document.getElementById("graph-carousel-inner").style.transform = "translateX(-" + (100 * num) + "%)"
+            setCarouselNumber(num)
+            for (let node of document.getElementsByClassName("selected-button")) {
+                node.classList.remove("selected-button");
+            }
+            document.getElementById("graph-display-page-button-background-" + num).classList.add("selected-button");
+        }
+    }
+
+    let handlers = useSwipeable({
+        onSwipedLeft: () => handleCarouselChange(carouselNumber + 1),
+        onSwipedRight: () => handleCarouselChange(carouselNumber - 1),
+        trackMouse: true
+    });
+
+    let buttons = []
+
+    for (let i = 0; i < max; i++) {
+        buttons.push(
+            <div id={"graph-display-page-button-" + i}
+                 className="graph-display-page-button"
+                 key={"graph_display_button_" + i}>
+                <div id={"graph-display-page-button-background-" + i}
+                    className={"graph-display-page-button-background" + (i === 0 ? " selected-button" : "")}
+                    onClick={() =>{
+                        handleCarouselChange(i);
+                    }}></div>
+                &#9675;
+            </div>
+        )
+    }
+
+    return (
+        <div {...handlers} className="graph-carousel">
+            <div id="graph-carousel-inner" className="graph-carousel-inner" style={{transform: "translateX(-0%"}}>
+                {props.graph3 &&
+                    <div className="graph3 carousel-item">
+                        <Bar data={props.graph3}
+                            options={{
+                                plugins: {legend: false},
+                                maintainAspectRatio: false,
+                                onResize: (newChart, newSize) => {
+                                    if (newSize.width < 856) {
+                                        newChart.options.scales.x.ticks.display = false;
+                                    }
+                                    else {
+                                        newChart.options.scales.x.ticks.display = true;
+                                    }
+                                },
+                                scale: {x: {ticks: {display: true}}}
+                            }}/>
+                    </div>
+                }
+                {props.graph6 &&
+                    <div className="graph3 carousel-item">
+                        <Bar data={props.graph6}
+                            options={{
+                                plugins: {legend: false},
+                                maintainAspectRatio: false
+                            }}/>
+                    </div>
+                }
+                {props.graph4 &&
+                    <div className="graph4 carousel-item">
+                        <Line data={props.graph4}
+                            options={{
+                                plugins: {legend: false},
+                                maintainAspectRatio: false
+                            }}/>
+                    </div>
+                }
+                {props.graph5 &&
+                    <div className="graph4 carousel-item">
+                        <Line data={props.graph5}
+                            options={{
+                                plugins: {legend: false},
+                                maintainAspectRatio: false
+                            }}/>
+                    </div>
+                }
+            </div>
+            <div className="graph-display-page-buttons">
+                <div className="graph-display-arrow" onClick={() => handleCarouselChange(carouselNumber - 1)}>&lt;</div>
+                {buttons}
+                <div className="graph-display-arrow" onClick={() => handleCarouselChange(carouselNumber + 1)}>&gt;</div>
+            </div>
+        </div>
+    )
+}
 
 class Home extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            pageNumber: 1
+            carouselNumber: 0
         };
 
         this.handleGetDisplayData = this.handleGetDisplayData.bind(this);
@@ -260,10 +364,8 @@ class Home extends React.Component {
                         }
                         for (let i = res.data["minHour"]; i <= res.data["maxHour"]; i++) {
                             data["labels"].push(i + ":00:00");
-                            data["labels"].push(i + ":30:00");
                             for (let j = 0; j < datasetsLabels.length; j++) {
-                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i + ":00:00"] ? res.data[datasetsLabels[j]][i + ":00:00"] : 0);
-                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i + ":30:00"] ? res.data[datasetsLabels[j]][i + ":30:00"] : 0);
+                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i] ? res.data[datasetsLabels[j]][i] : 0);
                             }
                         }
 
@@ -326,50 +428,21 @@ class Home extends React.Component {
     }
 
     getGraphDisplay() {
-        if (this.state.pageNumber === 1) {
-            return (
-                <div className="graph-display">
-                    <div className="sales-graph-group1">
-                        {this.state.graph1 &&
-                            <div className="graph1">
-                                <Pie data={this.state.graph1}
-                                    options={{
-                                        plugins: {legend: false},
-                                        maintainAspectRatio: false
-                                    }}/>
-                            </div>
-                        }
-                        {this.state.graph2 &&
-                            <div className="graph1">
-                                <Pie data={this.state.graph2}
-                                    options={{
-                                        plugins: {legend: false},
-                                        maintainAspectRatio: false
-                                    }}/>
-                            </div>
-                        }
-                    </div>
-                    {this.state.graph3 &&
-                        <div className="graph3">
-                            <Bar data={this.state.graph3}
+        return  (
+            <div className="graph-display">
+                <div className="sales-graph-group1">
+                    {this.state.graph1 &&
+                        <div className="graph1">
+                            <Pie data={this.state.graph1}
                                 options={{
                                     plugins: {legend: false},
-                                    maintainAspectRatio: false,
-                                    onResize: (newChart, newSize) => {
-                                        if (newSize.width < 856) {
-                                            newChart.options.scales.x.ticks.display = false;
-                                        }
-                                        else {
-                                            newChart.options.scales.x.ticks.display = true;
-                                        }
-                                    },
-                                    scale: {x: {ticks: {display: true}}}
+                                    maintainAspectRatio: false
                                 }}/>
                         </div>
                     }
-                    {this.state.graph6 &&
-                        <div className="graph3">
-                            <Bar data={this.state.graph6}
+                    {this.state.graph2 &&
+                        <div className="graph1">
+                            <Pie data={this.state.graph2}
                                 options={{
                                     plugins: {legend: false},
                                     maintainAspectRatio: false
@@ -377,52 +450,11 @@ class Home extends React.Component {
                         </div>
                     }
                 </div>
-            )
-        }
-        else {
-            return (
-                <div className="graph-display">
-                    <div className="sales-graph-group1">
-                        {this.state.graph1 &&
-                            <div className="graph1">
-                                <Pie data={this.state.graph1}
-                                    options={{
-                                        plugins: {legend: false},
-                                        maintainAspectRatio: false
-                                    }}/>
-                            </div>
-                        }
-                        {this.state.graph2 &&
-                            <div className="graph1">
-                                <Pie data={this.state.graph2}
-                                    options={{
-                                        plugins: {legend: false},
-                                        maintainAspectRatio: false
-                                    }}/>
-                            </div>
-                        }
-                    </div>
-                    {this.state.graph4 &&
-                        <div className="graph4">
-                            <Line data={this.state.graph4}
-                                options={{
-                                    plugins: {legend: false},
-                                    maintainAspectRatio: false
-                                }}/>
-                        </div>
-                    }
-                    {this.state.graph5 &&
-                        <div className="graph4">
-                            <Line data={this.state.graph5}
-                                options={{
-                                    plugins: {legend: false},
-                                    maintainAspectRatio: false
-                                }}/>
-                        </div>
-                    }
-                </div>
-            )
-        }
+                {(this.state.graph3 || this.state.graph4 || this.state.graph5 || this.state.graph6) &&
+                    <Carousel graph3={this.state.graph3} graph4={this.state.graph4} graph5={this.state.graph5} graph6={this.state.graph6} />
+                }
+            </div>
+        )
     }
 
     getPredictionsDisplay() {
@@ -430,11 +462,11 @@ class Home extends React.Component {
         for (let i = 0; i < this.state.predictions.length; i++) {
             let predictionDirection = "~"
             let predictionClass = "predict-same"
-            if (this.state.predictions[i] == 2) {
+            if (this.state.predictions[i] === 2) {
                 predictionDirection = "ᐃ"
                 predictionClass = "predict-up"
             }
-            else if (this.state.predictions[i] == 0) {
+            else if (this.state.predictions[i] === 0) {
                 predictionDirection = "ᐁ"
                 predictionClass = "predict-down"
             }
@@ -470,8 +502,14 @@ class Home extends React.Component {
                             </select>
                         </div>
                         <div className="sales-date-inputs">
-                            <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
-                            <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
+                            <div className="sales-date-input">
+                                From 
+                                <input id="sales-beg-date-input" name="sales-beg-date-input" type="date" />
+                            </div>
+                            <div className="sales-date-input">
+                                To
+                                <input id="sales-end-date-input" name="sales-end-date-input" type="date" />
+                            </div>
                         </div>
                         <select id="sales-product-line-input" name="sales-product-line-input" size="3" multiple>
                             {this.state.productLines && this.state.productLines.map(x => {
@@ -481,14 +519,10 @@ class Home extends React.Component {
                                     }}>{x}</option>
                             })}
                         </select>
-                        <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
                     </div>
+                    <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
                     {this.state.predictions && this.getPredictionsDisplay()}
                     {this.getGraphDisplay()}
-                    <div className="graph-display-page-buttons">
-                        <button type="button" onClick={() => {this.setState({ pageNumber: 1})}}>Previous</button>
-                        <button type="button" onClick={() => {this.setState({ pageNumber: 2})}}>Next</button>
-                    </div>
                 </div>
             )
         }
