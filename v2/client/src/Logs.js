@@ -29,6 +29,9 @@ class Logs extends React.Component {
     }
 
     handleRetrieveLogs(pageNumber) {
+        for (let node of document.getElementsByClassName("display-arrow")) {
+            node.setAttribute("disabled", true);
+        }
         this.getTableData("Logs", undefined, undefined, pageNumber, (err, res) => {
             if (err) {
                 console.error(err);
@@ -36,12 +39,17 @@ class Logs extends React.Component {
             }
             else {
                 console.log(res);
-                this.setState({
-                    pageNumber,
-                    logData: res.data.results,
-                    columns: res.data.columns,
-                    pkColumns: res.data.pkColumns
-                });
+                for (let node of document.getElementsByClassName("display-arrow")) {
+                    node.removeAttribute("disabled");
+                }
+                if (res.data.results.length > 0) {
+                    this.setState({
+                        pageNumber,
+                        logData: res.data.results,
+                        columns: res.data.columns,
+                        pkColumns: res.data.pkColumns
+                    });
+                }
             }
         })
     }
@@ -53,10 +61,20 @@ class Logs extends React.Component {
         }
     }
 
+    getPageInputsHTML() {
+        return (
+            <div className="logs-page-inputs">
+                <div className="display-arrow" onClick={() => this.handleRetrieveLogs(this.state.pageNumber - 1)}>&lt;</div>
+                <input id="page-number-input" className="page-input" onKeyDown={this.handlePageInputEvent} value={this.state.pageNumberInput} onChange={e => this.setState({pageNumberInput: e.target.value})}  type="text" maxLength={9}/>
+                <div className="display-arrow" onClick={() => this.handleRetrieveLogs(this.state.pageNumber + 1)}>&gt;</div>
+            </div>
+        )
+    }
+
     render() {
         return (
             <div className="logs-page">
-                <input id="page-number-input" onKeyDown={this.handlePageInputEvent} value={this.state.pageNumberInput} onChange={e => this.setState({pageNumberInput: e.target.value})}  type="text" />
+                {this.getPageInputsHTML()}
                 <table id="query-table" key={this.state.curQueryTable}>
                     <thead id="query-table-header">
                         {this.state.columns &&
@@ -72,6 +90,7 @@ class Logs extends React.Component {
                         return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i} >{y}</td>)}</tr>
                     })}</tbody>
                 </table>
+                {this.getPageInputsHTML()}
             </div>
         )
     }

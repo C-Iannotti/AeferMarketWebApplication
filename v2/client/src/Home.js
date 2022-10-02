@@ -115,9 +115,9 @@ function Carousel(props) {
                 }
             </div>
             <div className="graph-display-page-buttons">
-                <div className="graph-display-arrow" onClick={() => handleCarouselChange(carouselNumber - 1)}>&lt;</div>
+                <div className="display-arrow" onClick={() => handleCarouselChange(carouselNumber - 1)}>&lt;</div>
                 {buttons}
-                <div className="graph-display-arrow" onClick={() => handleCarouselChange(carouselNumber + 1)}>&gt;</div>
+                <div className="display-arrow" onClick={() => handleCarouselChange(carouselNumber + 1)}>&gt;</div>
             </div>
         </div>
     )
