@@ -47,6 +47,7 @@ class Data extends React.Component {
                         for (let i = 0; i < res.data.results.length; i++) {
                             tableColumns[res.data.results[i].table] =  {
                                 columns: res.data.results[i].columns,
+                                pkColumns: res.data.results[i].pkColumns
                             }
                             tables.push(res.data.results[i].table)
                         }
@@ -63,15 +64,14 @@ class Data extends React.Component {
     }
 
     handleRetrieveData() {
-        let table = document.getElementById("table-input").value;
         this.setState({
             pageNumberInput: 0
-        }, () => this.handleRetrieveDataPage(0, table, this.state.columnsInput, this.state.constraintsInput))
+        }, () => this.handleRetrieveDataPage(0, this.state.curTable, this.state.columnsInput, this.state.constraintsInput))
     }
 
     handleRetrieveDataPage(page=0, table=undefined, columns=undefined, constraints=undefined) {
         if (table === undefined) {
-            table = this.state.table;
+            table = this.state.curTable;
         }
 
         if (columns === undefined) {
@@ -82,7 +82,7 @@ class Data extends React.Component {
             constraints = this.state.constraints;
         }
 
-        this.getTableData(table, constraints, columns, this.state.pageNumberInput, (err, res) => {
+        this.getTableData(table, constraints, columns, page, (err, res) => {
             if (err) console.error(err);
             else {
                 if (res.data.results.length > 0) {
@@ -93,7 +93,7 @@ class Data extends React.Component {
                         editable: res.data.editable,
                         curQueryTable: this.state.curQueryTable + 1,
                         tableColumns: this.state.tableColumns,
-                        pageNumber: this.state.pageNumberInput,
+                        pageNumber: page,
                         columns,
                         constraints,
                         columnsInput: [],
@@ -152,7 +152,7 @@ class Data extends React.Component {
     handlePageInputEvent(e) {
         console.log(e.key)
         if (e.key === "Enter") {
-            this.handleRetrieveDataPage()
+            this.handleRetrieveDataPage(this.state.pageNumberInput)
         }
     }
 
@@ -167,7 +167,6 @@ class Data extends React.Component {
     }
 
     render() {
-        console.log(this.state)
         if (this.props.authenticated) {
             return (
                 <div className="data-page">
@@ -188,15 +187,17 @@ class Data extends React.Component {
                             }}>Clear Inputs</button>
                         </div>
                         <div className="query-columns-inputs query-input-specification">
-                            <select id="column-column-input">
-                                {this.state.tableColumns && this.state.tableColumns[this.state.curTable].columns.map(x => {
-                                    return <option value={x} key={x + "_column_" + this.state.curColumn}>{x}</option>
-                                })}
-                            </select>
-                            <select id="column-sort-input">
-                                <option value="ASC">Ascending</option>
-                                <option value="DESC">Decending</option>
-                            </select>
+                            <div className="query-input-specification-inputs">
+                                <select id="column-column-input">
+                                    {this.state.tableColumns && [].concat(this.state.tableColumns[this.state.curTable].pkColumns, this.state.tableColumns[this.state.curTable].columns).map(x => {
+                                        return <option value={x} key={x + "_column_" + this.state.curColumn}>{x}</option>
+                                    })}
+                                </select>
+                                <select id="column-sort-input">
+                                    <option value="ASC">Ascending</option>
+                                    <option value="DESC">Decending</option>
+                                </select>
+                            </div>
                             <div className="add-specification-button" onClick={() => {
                                 let column = document.getElementById("column-column-input").value;
                                 let columnSort = document.getElementById("column-sort-input").value;
@@ -205,17 +206,19 @@ class Data extends React.Component {
                             }}>+</div>
                         </div>
                         <div className="query-constraints-inputs query-input-specification">
-                            <select id="constraint-column-input">
-                                {this.state.tableColumns && this.state.tableColumns[this.state.curTable].columns.map(x => {
-                                    return <option value={x} key={x + "_constraint_" + this.state.curConstraint}>{x}</option>
-                                })}
-                            </select>
-                            <select id="constraint-comparison-input">
-                                <option value="=">=</option>
-                                <option value="<=">&#8804;</option>
-                                <option value=">=">&#8805;</option>
-                            </select>
-                            <input type="text" id="constraint-value-input" />
+                            <div className="query-input-specification-inputs">
+                                <select id="constraint-column-input">
+                                    {this.state.tableColumns && [].concat(this.state.tableColumns[this.state.curTable].pkColumns, this.state.tableColumns[this.state.curTable].columns).map(x => {
+                                        return <option value={x} key={x + "_constraint_" + this.state.curConstraint}>{x}</option>
+                                    })}
+                                </select>
+                                <select id="constraint-comparison-input">
+                                    <option value="=">=</option>
+                                    <option value="<=">&#8804;</option>
+                                    <option value=">=">&#8805;</option>
+                                </select>
+                                <input type="text" id="constraint-value-input" />
+                            </div>
                             <div className="add-specification-button" onClick={() => {
                                 let constraintColumn = document.getElementById("constraint-column-input").value;
                                 let constraintComparison = document.getElementById("constraint-comparison-input").value;

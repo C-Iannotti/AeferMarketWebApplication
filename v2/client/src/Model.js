@@ -23,14 +23,7 @@ class Model extends React.Component {
         this.handleRemakeModel = this.handleRemakeModel.bind(this);
         this.handleRetrieveModel = this.handleRetrieveModel.bind(this);
     }
-    handleAppendModelData() {
-        this.appendModelData((err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res);
-            }
-        });
-    }
+
     componentDidMount() {
         this.props.checkLogin((err, res) => {
             if (err) {
@@ -42,59 +35,105 @@ class Model extends React.Component {
         
                 date.setMilliseconds(null);
                 date.setSeconds(null);
-        
-                document.getElementById("model-retrieval-date").value = date.toISOString().slice(0, -1);
+
+                this.setState({defaultTime: date.toISOString().slice(0, -1)});
             }
+        });
+    }
+
+    handleAppendModelData() {
+        this.appendModelData((err, res) => {
+            if (err) {
+                this.setState({message: "Failed to format new data for model."});
+            }
+            else {
+                console.log(res);
+                this.setState({message: "Formatted new data for model."});
+            }
+            if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
     }
 
     handleReplaceModelData() {
         this.replaceModelData((err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res);
+            if (err) {
+                this.setState({message: "Failed to reformat data for model."});
             }
+            else {
+                this.setState({message: "Reformatted data for model."});
+            }
+            if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
     }
 
     handleIncrementModel() {
         this.incrementModel((err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res);
+            if (err) {
+                this.setState({message: "Failed to train model."});
             }
+            else {
+                this.setState({message: "Trained model with new Accuracy: " + res.data.trainAccuracy});
+            }
+            if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
     }
 
     handleRemakeModel() {
         this.remakeModel((err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res);
+            if (err) {
+                this.setState({message: "Failed to reinitialize model."});
             }
+            else {
+                this.setState({message: "Reinitialized model with Accuracy: " + res.data.trainAccuracy});
+            }
+            if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
     }
 
     handleRetrieveModel() {
         let searchDate = document.getElementById("model-retrieval-date").value
         this.retrieveModel(searchDate, (err, res) => {
-            if (err) console.error(err);
-            else {
-                console.log(res);
+            if (err) {
+                this.setState({message: "Failed to retrieve model."});
             }
+            else {
+                this.setState({message: "Retrieved model with id: " + res.data.id + " and timestamp: " + res.data.timestamp})
+            }
+            if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
+    }
+
+    handleModelAction() {
+        let modelAction = document.getElementById("model-page-action-input").value;
+        document.getElementById("model-page-action-button").setAttribute("disabled", true);
+        
+        if (modelAction === "formatNewData") this.handleAppendModelData();
+        else if (modelAction === "replaceData") this.handleReplaceModelData();
+        else if (modelAction === "reinitializeModel") this.handleRemakeModel();
+        else if (modelAction === "trainModel") this.handleIncrementModel();
+        else this.handleRetrieveModel();
     }
 
     render() {
         if (this.props.authenticated) {
             return (
                 <div className="model-page">
-                    <input type="datetime-local" id="model-retrieval-date" className="model-retrieval-date" />
-                    <button type="button" onClick={this.handleRetrieveModel}>Retrieve Old Model</button>
-                    <button type="button" onClick={this.handleIncrementModel}>Train model</button>
-                    <button type="button" onClick={this.handleRemakeModel}>Reinitialize Model</button>
-                    <button type="button" onClick={this.handleAppendModelData}>Append Data</button>
-                    <button type="button" onClick={this.handleReplaceModelData}>Replace Data</button>
+                    <div className="model-page-action">
+                        <select id="model-page-action-input" className="model-page-action-input" onChange={e => {
+                            this.setState({modelAction: e.target.value})
+                        }}>
+                            <option value="formatNewData">Format New Data</option>
+                            <option value="replaceData">Replace Data</option>
+                            <option value="reinitializeModel">Reinitialize Model</option>
+                            <option value="trainModel">Train Model</option>
+                            <option value="retrieveOldModel">Retrieve Old Model</option>
+                        </select>
+                        {this.state.modelAction === "retrieveOldModel" &&
+                            <input type="datetime-local" id="model-retrieval-date" className="model-retrieval-date" defaultValue={this.state.defaultTime}/>
+                        }
+                        <button type="button" id="model-page-action-button" onClick={() => {this.handleModelAction()}}>Start</button>
+                    </div>
+                    {this.state.message && <p className="model-page-message">{this.state.message}</p>}
                 </div>
             )
         }

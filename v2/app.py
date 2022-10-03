@@ -4,6 +4,7 @@ from dateutil import parser, relativedelta
 from flask import Flask, send_from_directory, make_response, request, session
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user
+from tensorflow._api.v2 import data
 from database import db_session, init_db
 from models import Sales, Users, ModelData, Logs
 from dotenv import load_dotenv
@@ -24,6 +25,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 model = MLModel()
+data_model_accessed = False
 
 def parse_body_values(conn, body):
     if "branch" not in body or not body["branch"]:
@@ -84,6 +86,9 @@ def parse_body_values(conn, body):
 
     return body
 
+def add_log(action=None, table=None):
+    db_session.add(Logs(user=current_user.id, action=action, table=table, timestamp=datetime.datetime.now()))
+
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
 def home(path):
@@ -113,7 +118,7 @@ def login():
         session.permanent = True
         user = Users.query.get(result[0])
         login_user(user, duration=datetime.timedelta(minutes=30))
-        db_session.add(Logs(user=current_user.id, action="LOGIN", timestamp=datetime.datetime.now()))
+        add_log("LOGIN")
         db_session.commit()
         res = make_response({ "message": "Logged in"})
         return res
@@ -345,196 +350,204 @@ def retrieve_trend_predictions():
 @app.post("/api/update-model-data")
 @login_required
 def update_model_data():
-    if not current_user.alter_model:
-            return "", 403
+    global data_model_accessed
+    if data_model_accessed: return "", 500
+    data_model_accessed = True
 
-    with db_session.connection() as conn:
-        body = request.get_json()
-        body = parse_body_values(conn, body)
+    try:
+        if not current_user.alter_model:
+                return "", 403
 
-        if body["dataMethod"].lower() == "append":
-            query_results = conn.execute(f"""
-                SELECT MAX("Date")
-                FROM "ModelData";
-            """)
-            for line in query_results:
-                min_date = line[0]
-            if min_date is not None: min_date = min_date + datetime.timedelta(days=1)
-            
-            query_results = conn.execute(f"""
-                SELECT MIN("Date"), MAX("Date")
-                FROM "Sales";
-            """)
-            for line in query_results:
-                if min_date is None:
+        with db_session.connection() as conn:
+            body = request.get_json()
+            body = parse_body_values(conn, body)
+
+            if body["dataMethod"].lower() == "append":
+                query_results = conn.execute(f"""
+                    SELECT MAX("Date")
+                    FROM "ModelData";
+                """)
+                for line in query_results:
                     min_date = line[0]
-                max_date = line[1]
+                if min_date is not None: min_date = min_date + datetime.timedelta(days=1)
+                
+                query_results = conn.execute(f"""
+                    SELECT MIN("Date"), MAX("Date")
+                    FROM "Sales";
+                """)
+                for line in query_results:
+                    if min_date is None:
+                        min_date = line[0]
+                    max_date = line[1]
 
-            query_results = conn.execute(f"""
-                INSERT INTO "ModelData"
-                SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
-                FROM 
-                (SELECT "Branch", "ProductLine", "Date", "Quantity"
-                FROM "Sales"
-                UNION
-                SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
-                FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
-                ) as c
-                WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
-                GROUP BY "Branch", "ProductLine", "Date"
-                ORDER BY "Branch", "ProductLine", "Date";
-            """)
+                query_results = conn.execute(f"""
+                    INSERT INTO "ModelData"
+                    SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
+                    FROM 
+                    (SELECT "Branch", "ProductLine", "Date", "Quantity"
+                    FROM "Sales"
+                    UNION
+                    SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
+                    FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
+                    ) as c
+                    WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
+                    GROUP BY "Branch", "ProductLine", "Date"
+                    ORDER BY "Branch", "ProductLine", "Date";
+                """)
 
-        if body["dataMethod"].lower() == "replace":
-            query_results = conn.execute("""DELETE FROM "ModelData";""")
+            if body["dataMethod"].lower() == "replace":
+                query_results = conn.execute("""DELETE FROM "ModelData";""")
 
-            query_results = conn.execute(f"""
-                SELECT MIN("Date"), MAX("Date")
-                FROM "Sales";
+                query_results = conn.execute(f"""
+                    SELECT MIN("Date"), MAX("Date")
+                    FROM "Sales";
+                """)
+                for line in query_results:
+                    min_date = line[0]
+                    max_date = line[1]
+
+                query_results = conn.execute(f"""
+                    INSERT INTO "ModelData"
+                    SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
+                    FROM 
+                    (SELECT "Branch", "ProductLine", "Date", "Quantity"
+                    FROM "Sales"
+                    UNION
+                    SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
+                    FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
+                    ) as c
+                    WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
+                    GROUP BY "Branch", "ProductLine", "Date"
+                    ORDER BY "Branch", "ProductLine", "Date";
+                """)
+
+            data = pd.DataFrame(columns=["Branch", "Product line", "Date", "Quantity"])
+            query_results = conn.execute("""
+                SELECT "Branch", "ProductLine", "Date", "Quantity"
+                FROM "ModelData"
+                ORDER BY "Branch", "ProductLine", "Date"
             """)
             for line in query_results:
-                min_date = line[0]
-                max_date = line[1]
+                data.loc[len(data.index)] = [line[0], line[1], line[2], line[3]]
 
-            query_results = conn.execute(f"""
-                INSERT INTO "ModelData"
-                SELECT "Branch", "ProductLine", "Date", SUM("Quantity") as "Quantity"
-                FROM 
-                (SELECT "Branch", "ProductLine", "Date", "Quantity"
-                FROM "Sales"
-                UNION
-                SELECT "Branch", "ProductLine", "Date"::date, 0 as "Quantity"
-                FROM generate_series('{min_date}'::timestamp, '{max_date}', '1 day') AS a("Date") CROSS JOIN (SELECT DISTINCT "Branch", "ProductLine" FROM "Sales") as b
-                ) as c
-                WHERE "Date" BETWEEN '{min_date}' AND '{max_date}'
-                GROUP BY "Branch", "ProductLine", "Date"
-                ORDER BY "Branch", "ProductLine", "Date";
-            """)
+            train_data = pd.DataFrame(columns=["Branch", "Product line", "Month"] + [f"{i}" for i in range(14)] + ["Class"])
 
-        data = pd.DataFrame(columns=["Branch", "Product line", "Date", "Quantity"])
-        query_results = conn.execute("""
-            SELECT "Branch", "ProductLine", "Date", "Quantity"
-            FROM "ModelData"
-            ORDER BY "Branch", "ProductLine", "Date"
-        """)
-        for line in query_results:
-            data.loc[len(data.index)] = [line[0], line[1], line[2], line[3]]
+            for [branch, product_line], cur_frame in data.groupby(["Branch", "Product line"]):
+                values = cur_frame["Quantity"]
+                cur_slide = values.iloc[:14].to_list()
+                for i in range(14, values.shape[0]):
+                    label = 1
 
-        train_data = pd.DataFrame(columns=["Branch", "Product line", "Month"] + [f"{i}" for i in range(14)] + ["Class"])
-        branches = pd.unique(data["Branch"])
-        product_lines = pd.unique(data["Product line"])
-        j=0
+                    if cur_slide[-1] - values.iloc[i] >= cur_slide[-1] * 0.33:
+                        label = 0
+                    elif cur_slide[-1] - values.iloc[i] <= cur_slide[-1] * -0.33:
+                        label = 2
+                    train_data.loc[len(train_data.index)] = [branch, product_line, cur_frame.iloc[i]["Date"].month] + cur_slide + [label]
 
-        for [branch, product_line], cur_frame in data.groupby(["Branch", "Product line"]):
-            values = cur_frame["Quantity"]
-            cur_slide = values.iloc[:14].to_list()
-            for i in range(14, values.shape[0]):
-                label = 1
+                    cur_slide.pop(0)
+                    cur_slide.append(values.iloc[i])
+                        
+            train_data = pd.concat([train_data, pd.get_dummies(train_data["Branch"])], axis=1)
+            train_data = pd.concat([train_data, pd.get_dummies(train_data["Product line"])], axis=1)
 
-                if cur_slide[-1] - values.iloc[i] >= cur_slide[-1] * 0.33:
-                    label = 0
-                elif cur_slide[-1] - values.iloc[i] <= cur_slide[-1] * -0.33:
-                    label = 2
-                train_data.loc[len(train_data.index)] = [branch, product_line, cur_frame.iloc[i]["Date"].month] + cur_slide + [label]
+            train_data.pop("Branch")
+            train_data.pop("Product line")
+            train_data = train_data[[c for c in train_data if c not in [f"{i}" for i in range(14)]] 
+                + [f"{i}" for i in range(14)]]
+                        
+            train_data_columns = train_data.iloc[:0].copy().drop(columns=["Class"])
+            train_data_columns.to_pickle("./model/transformed_model_columns.pkl")
+            
+            valid_data = train_data.sample(frac=0.15)
+            train_data = train_data.drop(valid_data.index)
 
-                cur_slide.pop(0)
-                cur_slide.append(values.iloc[i])
-                    
-        train_data = pd.concat([train_data, pd.get_dummies(train_data["Branch"])], axis=1)
-        train_data = pd.concat([train_data, pd.get_dummies(train_data["Product line"])], axis=1)
+            train_0 = train_data[train_data["Class"] == 0]
+            train_1 = train_data[train_data["Class"] == 1]
+            train_2 = train_data[train_data["Class"] == 2]
+            max_train = (train_0 if train_0.shape[0] >= train_1.shape[0] and train_0.shape[0] >= train_2.shape[0] else
+                        train_1 if train_1.shape[0] >= train_0.shape[0] and train_1.shape[0] >= train_2.shape[0] else
+                        train_2)
 
-        train_data.pop("Branch")
-        train_data.pop("Product line")
-        train_data = train_data[[c for c in train_data if c not in [f"{i}" for i in range(14)]] 
-            + [f"{i}" for i in range(14)]]
-                    
-        train_data_columns = train_data.iloc[:0].copy().drop(columns=["Class"])
-        train_data_columns.to_pickle("./model/transformed_model_columns.pkl")
-        
-        valid_data = train_data.sample(frac=0.15)
-        train_data = train_data.drop(valid_data.index)
+            valid_0 = valid_data[valid_data["Class"] == 0]
+            valid_1 = valid_data[valid_data["Class"] == 1]
+            valid_2 = valid_data[valid_data["Class"] == 2]
+            max_valid = (valid_0 if valid_0.shape[0] >= valid_1.shape[0] and valid_0.shape[0] >= valid_2.shape[0] else
+                        valid_1 if valid_1.shape[0] >= valid_0.shape[0] and valid_1.shape[0] >= valid_2.shape[0] else
+                        valid_2)
 
-        train_0 = train_data[train_data["Class"] == 0]
-        train_1 = train_data[train_data["Class"] == 1]
-        train_2 = train_data[train_data["Class"] == 2]
-        max_train = (train_0 if train_0.shape[0] >= train_1.shape[0] and train_0.shape[0] >= train_2.shape[0] else
-                    train_1 if train_1.shape[0] >= train_0.shape[0] and train_1.shape[0] >= train_2.shape[0] else
-                    train_2)
+            for data_item in [train_0, train_1, train_2]:
+                cur_num = data_item.shape[0]
+                while cur_num + data_item.shape[0] < max_train.shape[0]:
+                    train_data = pd.concat([train_data, data_item])
+                    cur_num += data_item.shape[0]
 
-        valid_0 = valid_data[valid_data["Class"] == 0]
-        valid_1 = valid_data[valid_data["Class"] == 1]
-        valid_2 = valid_data[valid_data["Class"] == 2]
-        max_valid = (valid_0 if valid_0.shape[0] >= valid_1.shape[0] and valid_0.shape[0] >= valid_2.shape[0] else
-                    valid_1 if valid_1.shape[0] >= valid_0.shape[0] and valid_1.shape[0] >= valid_2.shape[0] else
-                    valid_2)
+            for data_item in [valid_0, valid_1, valid_2]:
+                cur_num = data_item.shape[0]
+                while cur_num + data_item.shape[0] < max_valid.shape[0]:
+                    valid_data = pd.concat([valid_data, data_item])
+                    cur_num += data_item.shape[0]
 
-        for data_item in [train_0, train_1, train_2]:
-            cur_num = data_item.shape[0]
-            while cur_num + data_item.shape[0] < max_train.shape[0]:
-                train_data = pd.concat([train_data, data_item])
-                cur_num += data_item.shape[0]
+            train_data.to_csv("./model/train_data.csv", index=False)
+            valid_data.to_csv("./model/valid_data.csv", index=False)
 
-        for data_item in [valid_0, valid_1, valid_2]:
-            cur_num = data_item.shape[0]
-            while cur_num + data_item.shape[0] < max_valid.shape[0]:
-                valid_data = pd.concat([valid_data, data_item])
-                cur_num += data_item.shape[0]
-
-
-        #train_class = train_data.pop("Class")
-        #valid_class = valid_data.pop("Class")
-
-        train_data.to_csv("./model/train_data.csv", index=False)
-        #train_class.to_csv("./model/train_class.csv", index=False)
-        valid_data.to_csv("./model/valid_data.csv", index=False)
-        #valid_class.to_csv("./model/valid_class.csv", index=False)
-
-        db_session.add(Logs(user=current_user.id, action="UPDATE", table="ModelData", timestamp=datetime.datetime.now()))
-        db_session.commit()
-        return "", 200
+            add_log(action="UPDATE", table="ModelData")
+            db_session.commit()
+            data_model_accessed = False
+            return "", 200
+    except:
+        data_model_accessed = False
+        return "", 500
 
 
 @app.post("/api/change-model")
 @login_required
 def change_model():
-    if not current_user.alter_model:
-        return "", 403
+    global data_model_accessed
+    if data_model_accessed: return "", 500
+    data_model_accessed = True
 
-    with db_session.connection() as conn:
-        body = request.get_json()
-        body = parse_body_values(conn, body)
-        new_model = None
-        train_acc, valid_acc = None, None
-        res = {}
-        
-        if body["modelMethod"].lower() == "increment":
-            new_model, res["trainAccuracy"], res["validAccuracy"] = model.train_model(10)
+    try:
+        if not current_user.alter_model:
+            return "", 403
 
-        if body["modelMethod"].lower() == "remake":
-            new_model, res["trainAccuracy"], res["validAccuracy"] = model.remake_model()
+        with db_session.connection() as conn:
+            body = request.get_json()
+            body = parse_body_values(conn, body)
+            new_model = None
+            res = {}
+            
+            if body["modelMethod"].lower() == "increment":
+                new_model, res["trainAccuracy"], res["validAccuracy"] = model.train_model(10)
 
-        if body["modelMethod"].lower() == "retrieval":
-            query_results = conn.execute(f"""
-                SELECT id, "Timestamp", "Layer1", "Layer2", "Layer3", "Layer4", "Layer5"
-                FROM "ModelWeights"
-                WHERE "Timestamp" < '{body["searchDate"]}'
-                ORDER BY "Timestamp" DESC
-                LIMIT 1
-            """)
-            weights = []
-            for line in query_results:
-                res["id"] = line[0]
-                res["timestamp"] = line[1]
-                weights = [line[2:]]
-            model.set_model(weights)
-        
-        if new_model:
-            db_session.add(new_model)
-            db_session.add(Logs(user=current_user.id, action="UPDATE", table="ModelWeights", timestamp=datetime.datetime.now()))
-            db_session.commit()
+            if body["modelMethod"].lower() == "remake":
+                new_model, res["trainAccuracy"], res["validAccuracy"] = model.remake_model()
 
-        res = make_response(res)
-        return res
+            if body["modelMethod"].lower() == "retrieval":
+                query_results = conn.execute(f"""
+                    SELECT id, "Timestamp", "Layer1", "Layer2", "Layer3", "Layer4", "Layer5"
+                    FROM "ModelWeights"
+                    WHERE "Timestamp" < '{body["searchDate"]}'
+                    ORDER BY "Timestamp" DESC
+                    LIMIT 1
+                """)
+                weights = []
+                for line in query_results:
+                    res["id"] = line[0]
+                    res["timestamp"] = line[1]
+                    weights = [line[2:]]
+                model.set_model(weights)
+            
+            if new_model:
+                db_session.add(new_model)
+                add_log(action="UPDATE", table="ModelWeights")
+                db_session.commit()
+
+            res = make_response(res)
+            data_model_accessed = False
+            return res
+    except:
+        data_model_accessed = False
+        return "", 500
 
 @app.post("/api/retrieve-tables")
 @login_required
@@ -543,13 +556,15 @@ def retrieve_tables():
     if current_user.view_sales:
         res.append({
             "table": "Sales",
-            "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
+            "columns": ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"],
+            "pkColumns": ["InvoiceID"]
         })
 
     if current_user.view_models:
         res.append({
             "table": "ModelWeights",
-            "columns": ["Timestamp"]
+            "columns": ["Timestamp"],
+            "pkColumns": ["id"]
         })
 
     res = make_response({"results": res})
@@ -612,7 +627,7 @@ def retrieve_table_data():
         for line in query_results:
             res["results"].append(line[:])
 
-        db_session.add(Logs(user=current_user.id, action="VIEW", table=table, timestamp=datetime.datetime.now()))
+        add_log(action="VIEW", table=table)
         db_session.commit()
         return json.dumps(res, default=str)
 
@@ -648,7 +663,7 @@ def update_sales_data():
                 WHERE {", ".join(['"' + primary_key_columns[j] + '"=' + "'" + body["pkData"][i][j] + "'" for j in range(len(primary_key_columns))])}
             """)
 
-        db_session.add(Logs(user=current_user.id, action="UPDATE", table="Sales", timestamp=datetime.datetime.now()))
+        add_log(action="UPDATE", table="Sales")
         db_session.commit()
         res = make_response({})
         return res

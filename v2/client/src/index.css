@@ -14,10 +14,15 @@ body {
   justify-content: flex-start;
   align-items: center;
   gap: 10px;
-  padding-top: 20px;
 }
 
 .data-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.model-page {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,6 +35,7 @@ body {
   align-items: center;
   width: 100%;
   height: 50px;
+  margin-bottom: 15px;
 }
 
 code {
@@ -129,8 +135,13 @@ code {
 }
 
 .query-specification {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
   border: 1px solid black;
   border-radius: 10%;
+  gap: 10px;
 }
 
 .query-specification-clear {
@@ -322,5 +333,20 @@ code {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  gap: 15px;
+}
+
+.query-input-specification-inputs {
+  display: flex;
+  flex-direction: row;
   gap: 10px;
+}
+
+.model-page-action {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
 }
