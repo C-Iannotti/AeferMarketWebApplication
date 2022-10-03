@@ -17,6 +17,12 @@ body {
   padding-top: 20px;
 }
 
+.data-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .header {
   display: flex;
   flex-direction: row;
@@ -24,7 +30,6 @@ body {
   align-items: center;
   width: 100%;
   height: 50px;
-  border: black solid 1px;
 }
 
 code {
@@ -121,6 +126,15 @@ code {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
+}
+
+.query-specification {
+  border: 1px solid black;
+  border-radius: 10%;
+}
+
+.query-specification-clear {
+  cursor: pointer;
 }
 
 .specifications-group {
@@ -237,6 +251,16 @@ code {
   max-width: 250px;
 }
 
+.data-page-inputs {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 90vw;
+  max-width: 250px;
+  margin: auto;
+}
+
 .logs-page {
   display: flex;
   flex-direction: column;
@@ -249,4 +273,54 @@ code {
 
 .page-input {
   width: 70px;
+}
+
+.query-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 25px;
+}
+
+.add-specification-button {
+  cursor: pointer;
+}
+
+.query-table-container {
+  width: 90vw;
+  overflow-x: scroll;
+}
+
+.query-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 25px;
+}
+
+.query-table-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.query-edit-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.query-input-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.query-input-specification {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
 }

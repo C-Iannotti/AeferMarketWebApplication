@@ -13,17 +13,24 @@ class Data extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            curConstraint: 0,
-            curColumn: 0,
-            curQueryTable: 0
+            curQueryTable: 0,
+            constraints: [],
+            columns: [],
+            constraintsInput: [],
+            columnsInput: [],
+            pageNumber: 0,
+            pageNumberInput: 0
         };
 
         this.getTables = getTables.bind(this);
         this.getTableData = getTableData.bind(this);
         this.updateSalesData = updateSalesData.bind(this);
         this.handleRetrieveData = this.handleRetrieveData.bind(this);
+        this.handleRetrieveDataPage = this.handleRetrieveDataPage.bind(this);
         this.handleToggleEdit = this.handleToggleEdit.bind(this);
         this.handleUpdateData = this.handleUpdateData.bind(this);
+        this.getPageInputsHTML = this.getPageInputsHTML.bind(this);
+        this.handlePageInputEvent = this.handlePageInputEvent.bind(this);
     }
 
     componentDidMount() {
@@ -57,43 +64,42 @@ class Data extends React.Component {
 
     handleRetrieveData() {
         let table = document.getElementById("table-input").value;
-        let pageNumber = document.getElementById("page-number-input").value;
-        let constraintNodes = document.getElementById("constraints").childNodes;
-        let columnNodes = document.getElementById("columns").childNodes;
-        let constraints = [];
-        let columns = [];
+        this.setState({
+            pageNumberInput: 0
+        }, () => this.handleRetrieveDataPage(0, table, this.state.columnsInput, this.state.constraintsInput))
+    }
 
-        for (let parentNode of constraintNodes) {
-            let values = []
-            for (let childNode of parentNode.childNodes) {
-                if (childNode.value !== undefined) {
-                    values.push(childNode.value);
-                }
-            }
-            constraints.push(values);
+    handleRetrieveDataPage(page=0, table=undefined, columns=undefined, constraints=undefined) {
+        if (table === undefined) {
+            table = this.state.table;
         }
 
-        for (let parentNode of columnNodes) {
-            let values = []
-            for (let childNode of parentNode.childNodes) {
-                if (childNode.value !== undefined) {
-                    values.push(childNode.value);
-                }
-            }
-            columns.push(values);
+        if (columns === undefined) {
+            columns = this.state.columns;
         }
 
-        this.getTableData(table, constraints, columns, pageNumber, (err, res) => {
+        if (constraints === undefined) {
+            constraints = this.state.constraints;
+        }
+
+        this.getTableData(table, constraints, columns, this.state.pageNumberInput, (err, res) => {
             if (err) console.error(err);
             else {
-                this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
-                this.setState({
-                    queryColumns: res.data.columns,
-                    queryData: res.data.results,
-                    editable: res.data.editable,
-                    curQueryTable: this.state.curQueryTable + 1,
-                    tableColumns: this.state.tableColumns
-                });
+                if (res.data.results.length > 0) {
+                    this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
+                    this.setState({
+                        queryColumns: res.data.columns,
+                        queryData: res.data.results,
+                        editable: res.data.editable,
+                        curQueryTable: this.state.curQueryTable + 1,
+                        tableColumns: this.state.tableColumns,
+                        pageNumber: this.state.pageNumberInput,
+                        columns,
+                        constraints,
+                        columnsInput: [],
+                        constraintsInput: []
+                    });
+                }
             }
         })
     }
@@ -138,98 +144,159 @@ class Data extends React.Component {
         this.updateSalesData(pkData, data, columns, (err, res) => {
             if (err) console.error(err);
             else {
-                this.handleRetrieveData();
+                this.handleRetrieveDataPage();
             }
         })
     }
 
+    handlePageInputEvent(e) {
+        console.log(e.key)
+        if (e.key === "Enter") {
+            this.handleRetrieveDataPage()
+        }
+    }
+
+    getPageInputsHTML() {
+        return (
+            <div className="data-page-inputs">
+                <div className="display-arrow" onClick={() => this.handleRetrieveDataPage(this.state.pageNumber - 1)}>&lt;</div>
+                <input id="data-number-input" className="page-input" onKeyDown={this.handlePageInputEvent} value={this.state.pageNumberInput} onChange={e => this.setState({pageNumberInput: e.target.value})}  type="text" maxLength={9}/>
+                <div className="display-arrow" onClick={() => this.handleRetrieveDataPage(this.state.pageNumber + 1)}>&gt;</div>
+            </div>
+        )
+    }
+
     render() {
+        console.log(this.state)
         if (this.props.authenticated) {
             return (
                 <div className="data-page">
-                    <select id="table-input" value={this.state.curTable} onChange={e => {
-                        document.getElementById("constraints").innerHTML = "";
-                        document.getElementById("columns").innerHTML = "";
-                        this.setState({curTable: e.target.value});
-                    }}>
-                        {this.state.tables && this.state.tables.map(x => {
-                            return <option value={x} key={x}>{x}</option>
-                        })}
-                    </select>
-                    <input id="page-number-input" type="text" />
-                    <button type="button" onClick={this.handleRetrieveData}>Retrieve Data</button>
-                    {this.state.editable && !this.state.editQuery && <button onClick={() => this.handleToggleEdit()}>Edit</button>}
-                    {this.state.editable && this.state.editQuery && <button onClick={() => this.handleToggleEdit("cancel")}>Cancel</button>}
-                    {this.state.editable && this.state.editQuery && <button onClick={() => this.handleToggleEdit("confirm")}>Confirm</button>}
-                    <div className="query-specifications">
-                        <div className="specifications-group">
-                            <p>Columns</p>
-                            <div onClick={() => {
-                                this.setState({curColumn: this.state.curColumn + 1}, () => {
-                                    document.getElementById("columns").appendChild((new DOMParser()).parseFromString(renderToString(
-                                        <div className="column" id={"column-" + this.state.curColumn}>
-                                            <select>
-                                                {this.state.tableColumns[this.state.curTable].columns.map(x => {
-                                                    return <option value={x} key={x + "_column_" + this.state.curColumn}>{x}</option>
-                                                })}
-                                            </select>
-                                            <select>
-                                                <option value="ASC">Ascending</option>
-                                                <option value="DESC">Decending</option>
-                                            </select>
-                                            <div className="delete-button" id={"column-delete-" + this.state.curColumn}>x</div>
-                                        </div>
-                                    ), "text/html").querySelector("#column-" + this.state.curColumn))
-                                    document.getElementById("column-delete-" + this.state.curColumn).onclick = e => {
-                                        e.target.parentNode.remove();
-                                    };
+                    <div className="query-inputs">
+                        <div className="query-input-row">
+                            <select id="table-input" value={this.state.curTable} onChange={e => {
+                                this.setState({curTable: e.target.value, constraintsInput: [], columnsInput: []});
+                            }}>
+                                {this.state.tables && this.state.tables.map(x => {
+                                    return <option value={x} key={x}>{x}</option>
+                                })}
+                            </select>
+                            <button type="button" onClick={() => {
+                                this.setState({
+                                    columnsInput: [],
+                                    constraintsInput: []
                                 })
-                            }}>+</div>
-                            <div id="columns" className="columns"></div>
+                            }}>Clear Inputs</button>
                         </div>
-                        <div className="specifications-group">
-                            <p>Constraints</p>
-                            <div onClick={() => {
-                                this.setState({curConstraint: this.state.curConstraint + 1}, () => {
-                                    document.getElementById("constraints").appendChild((new DOMParser()).parseFromString(renderToString(
-                                        <div className="constraint" id={"constraint-" + this.state.curConstraint}>
-                                            <select>
-                                                {this.state.tableColumns[this.state.curTable].columns.map(x => {
-                                                    return <option value={x} key={x + "_constraint_" + this.state.curConstraint}>{x}</option>
-                                                })}
-                                            </select>
-                                            <select>
-                                                <option value="=">=</option>
-                                                <option value="<=">&#8804;</option>
-                                                <option value=">=">&#8805;</option>
-                                            </select>
-                                            <input type="text" />
-                                            <div className="delete-button" id={"constraint-delete-" + this.state.curConstraint}>x</div>
-                                        </div>
-                                    ), "text/html").querySelector("#constraint-" + this.state.curConstraint))
-                                    document.getElementById("constraint-delete-" + this.state.curConstraint).onclick = e => {
-                                        e.target.parentNode.remove();
-                                    };
-                                })
+                        <div className="query-columns-inputs query-input-specification">
+                            <select id="column-column-input">
+                                {this.state.tableColumns && this.state.tableColumns[this.state.curTable].columns.map(x => {
+                                    return <option value={x} key={x + "_column_" + this.state.curColumn}>{x}</option>
+                                })}
+                            </select>
+                            <select id="column-sort-input">
+                                <option value="ASC">Ascending</option>
+                                <option value="DESC">Decending</option>
+                            </select>
+                            <div className="add-specification-button" onClick={() => {
+                                let column = document.getElementById("column-column-input").value;
+                                let columnSort = document.getElementById("column-sort-input").value;
+                                this.state.columnsInput.push([column, columnSort]);
+                                this.setState({columnsInput: this.state.columnsInput})
                             }}>+</div>
-                            <div id="constraints" className="constraints"></div>
+                        </div>
+                        <div className="query-constraints-inputs query-input-specification">
+                            <select id="constraint-column-input">
+                                {this.state.tableColumns && this.state.tableColumns[this.state.curTable].columns.map(x => {
+                                    return <option value={x} key={x + "_constraint_" + this.state.curConstraint}>{x}</option>
+                                })}
+                            </select>
+                            <select id="constraint-comparison-input">
+                                <option value="=">=</option>
+                                <option value="<=">&#8804;</option>
+                                <option value=">=">&#8805;</option>
+                            </select>
+                            <input type="text" id="constraint-value-input" />
+                            <div className="add-specification-button" onClick={() => {
+                                let constraintColumn = document.getElementById("constraint-column-input").value;
+                                let constraintComparison = document.getElementById("constraint-comparison-input").value;
+                                let constraintValue = document.getElementById("constraint-value-input").value;
+                                this.state.constraintsInput.push([constraintColumn, constraintComparison, constraintValue]);
+                                this.setState({constraintsInput: this.state.constraintsInput})
+                            }}>+</div>
                         </div>
                     </div>
-                    <table id="query-table" key={this.state.curQueryTable}>
-                        <thead id="query-table-header">
-                            {this.state.tableColumns &&
-                            <tr>
-                                {this.state.queryColumns && this.state.tableColumns[this.state.curTable].pkColumns.map(x => {
-                                    return <th key={x}>{x}</th>
-                                })}
-                                {this.state.queryColumns && this.state.queryColumns.map(x => <th key={x} className="query-table-column">{x}</th>)}
-                            </tr>
-                            }
-                        </thead>
-                        <tbody id="query-table-body">{this.state.queryData && this.state.queryData.map((x, j) => {
-                            return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i}suppressContentEditableWarning={true} contentEditable={i >= this.state.tableColumns[this.state.curTable].pkColumns.length && this.state.editQuery}>{y}</td>)}</tr>
-                        })}</tbody>
-                    </table>
+                    <div className="query-buttons">
+                        <div className="query-table-buttons">
+                            <button type="button" onClick={() => {
+                                this.setState({
+                                    curQueryTable: 0,
+                                    queryColumns: undefined,
+                                    queryData: undefined,
+                                    editable: undefined,
+                                    pageNumber: 0,
+                                    columns: [],
+                                    constraints: []
+                                })
+                            }}>Clear Table</button>
+                            <button type="button" onClick={this.handleRetrieveData}>Retrieve Data</button>
+                        </div>
+                        {this.state.editable !== undefined &&
+                            <div className="query-edit-buttons">
+                                {this.state.editable && !this.state.editQuery && <button onClick={() => this.handleToggleEdit()}>Edit</button>}
+                                {this.state.editable && this.state.editQuery && <button onClick={() => this.handleToggleEdit("cancel")}>Cancel</button>}
+                                {this.state.editable && this.state.editQuery && <button onClick={() => this.handleToggleEdit("confirm")}>Confirm</button>}
+                            </div>
+                        }
+                    </div>
+                    <div className="query-specifications">
+                        <div id="columns" className="columns">
+                            {this.state.columnsInput && this.state.columnsInput.map((x, i) => {
+                                return (
+                                    <div key={"column_" + i} className="query-specification">
+                                        {x.join(' ')}
+                                        <div className="query-specification-clear" onClick={() => {
+                                            this.state.columnsInput.splice(i, 1);
+                                            this.setState({columnsInput: this.state.columnsInput});
+                                        }}>x</div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div id="constraints" className="constraints">
+                            {this.state.constraintsInput && this.state.constraintsInput.map((x, i) => {
+                                return (
+                                    <div key={"constraint_" + i} className="query-specification">
+                                        {x.join(' ')}
+                                        <div className="query-specification-clear" onClick={() => {
+                                            this.state.constraintsInput.splice(i, 1);
+                                            this.setState({constraintsInput: this.state.constraintsInput});
+                                        }}>x</div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                    {this.state.queryData &&
+                        <div className="query-table-container">
+                            {this.getPageInputsHTML()}
+                            <table id="query-table" key={this.state.curQueryTable}>
+                                <thead id="query-table-header">
+                                    {this.state.tableColumns &&
+                                    <tr>
+                                        {this.state.queryColumns && this.state.tableColumns[this.state.curTable].pkColumns.map(x => {
+                                            return <th key={x}>{x}</th>
+                                        })}
+                                        {this.state.queryColumns && this.state.queryColumns.map(x => <th key={x} className="query-table-column">{x}</th>)}
+                                    </tr>
+                                    }
+                                </thead>
+                                <tbody id="query-table-body">{this.state.queryData.map((x, j) => {
+                                    return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i}suppressContentEditableWarning={true} contentEditable={i >= this.state.tableColumns[this.state.curTable].pkColumns.length && this.state.editQuery}>{y}</td>)}</tr>
+                                })}</tbody>
+                            </table>
+                            {this.getPageInputsHTML()}
+                        </div>
+                    }
                 </div>
             )
         }

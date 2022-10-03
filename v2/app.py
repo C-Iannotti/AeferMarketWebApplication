@@ -226,7 +226,7 @@ def get_quantity_trends():
         res = make_response(results)
         return res
 
-@app.post("/api/quantity-per-half-hour")
+@app.post("/api/quantity-per-hour")
 @login_required
 def quantity_per_hour():
     with db_session.connection() as conn:
@@ -583,7 +583,6 @@ def retrieve_table_data():
 
         if table is not None:
             constraints = []
-            columns = []
             columns_order = []
 
             for item in body["constraints"]:
@@ -597,13 +596,12 @@ def retrieve_table_data():
                 if not isinstance(item, list) or len(item) != 2: continue
                 if not isinstance(item[0], str) or '"' in item[0]: continue
                 if item[1] != "ASC" and item[1] != "DESC": continue
-                columns.append('"' + item[0] + '"')
                 columns_order.append('"' + item[0] + '"' + " " + item[1])
 
             if table == "Logs" and "Timestamp" not in columns_order: columns_order.append('"Timestamp" DESC')
                 
         query_results = conn.execute(f"""
-            SELECT {", ".join(pk_columns + columns) if len(columns) > 0 else "*"}
+            SELECT *
             FROM "{table}"
             {"WHERE " + " AND ".join(constraints) if len(constraints) > 0 else ""}
             {"ORDER BY " + ", ".join(columns_order) if len(columns_order) > 0 else ""}
