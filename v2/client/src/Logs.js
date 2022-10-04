@@ -1,5 +1,6 @@
 import React from "react"
 import { withWrapper } from "./componentWrapper.js"
+import Loading from "./Loading.js"
 import {
     getTableData
 } from "./utils.js"
@@ -32,25 +33,41 @@ class Logs extends React.Component {
         for (let node of document.getElementsByClassName("display-arrow")) {
             node.setAttribute("disabled", true);
         }
-        this.getTableData("Logs", undefined, undefined, pageNumber, (err, res) => {
-            if (err) {
-                console.error(err);
-                this.setState({pageNumberInput: this.state.pageNumber});
-            }
-            else {
-                console.log(res);
-                for (let node of document.getElementsByClassName("display-arrow")) {
-                    node.removeAttribute("disabled");
-                }
-                if (res.data.results.length > 0) {
+        let logData = this.state.logData;
+        let columns = this.state.columns;
+        let pkColumns = this.state.pkColumns;
+        this.setState({
+            loadingTable: true,
+            logData: undefined,
+            columns: undefined,
+            pkColumns: undefined
+        }, () => {
+            this.getTableData("Logs", undefined, undefined, pageNumber, (err, res) => {
+                if (err) {
+                    console.error(err);
                     this.setState({
-                        pageNumber,
-                        logData: res.data.results,
-                        columns: res.data.columns,
-                        pkColumns: res.data.pkColumns
+                        pageNumberInput: this.state.pageNumber,
+                        logData,
+                        columns,
+                        pkColumns
                     });
                 }
-            }
+                else {
+                    console.log(res);
+                    for (let node of document.getElementsByClassName("display-arrow")) {
+                        node.removeAttribute("disabled");
+                    }
+                    if (res.data.results.length > 0) {
+                        this.setState({
+                            pageNumber,
+                            logData: res.data.results,
+                            columns: res.data.columns,
+                            pkColumns: res.data.pkColumns,
+                            loadingTable: false
+                        });
+                    }
+                }
+            })
         })
     }
 
@@ -72,27 +89,38 @@ class Logs extends React.Component {
     }
 
     render() {
-        return (
-            <div className="logs-page">
-                {this.getPageInputsHTML()}
-                <table id="query-table" key={this.state.curQueryTable}>
-                    <thead id="query-table-header">
-                        {this.state.columns &&
-                        <tr>
-                            {this.state.pkColumns && this.state.pkColumns.map(x => {
-                                return <th key={x}>{x}</th>
-                            })}
-                            {this.state.columns.map(x => <th key={x} className="query-table-column">{x}</th>)}
-                        </tr>
-                        }
-                    </thead>
-                    <tbody id="query-table-body">{this.state.logData && this.state.logData.map((x, j) => {
-                        return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i} >{y}</td>)}</tr>
-                    })}</tbody>
-                </table>
-                {this.getPageInputsHTML()}
-            </div>
-        )
+        if (this.props.authenticated) {
+            return (
+                <div className="logs-page">
+                    {this.state.logData &&
+                        <div className="query-table-container">
+                            {this.getPageInputsHTML()}
+                            <table id="query-table" key={this.state.curQueryTable}>
+                                <thead id="query-table-header">
+                                    {this.state.columns &&
+                                    <tr>
+                                        {this.state.pkColumns && this.state.pkColumns.map(x => {
+                                            return <th key={x}>{x}</th>
+                                        })}
+                                        {this.state.columns && this.state.columns.map(x => <th key={x} className="query-table-column">{x}</th>)}
+                                    </tr>
+                                    }
+                                </thead>
+                                <tbody id="query-table-body">{this.state.logData.map((x, j) => {
+                                    return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i} >{y}</td>)}</tr>
+                                })}</tbody>
+                            </table>
+                            {this.getPageInputsHTML()}
+                        </div>
+                    }
+                </div>
+            )
+        }
+        else {
+            return (
+                <Loading loadingMessage="Authenticating"/>
+            )
+        }
     }
 }
 

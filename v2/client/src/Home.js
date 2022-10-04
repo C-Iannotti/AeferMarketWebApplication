@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import { useSwipeable } from "react-swipeable";
 import { withWrapper } from "./componentWrapper.js";
+import Loading from "./Loading.js"
 import Chart from "chart.js/auto";
 import {
     borderColors,
@@ -176,215 +177,243 @@ class Home extends React.Component {
         let productLines = Array.from(document.getElementById("sales-product-line-input").selectedOptions).map(({value}) => value);
         let separateOn = document.getElementById("sales-separate-on-input").value;
 
-        this.getColumnValues(separateOn, (err, res) => {
-            if (err) console.error(err);
-            else {
-                this.setState({ separateOnValues: res.data.values });
-                let categoryLabels = res.data.values;
-                let productLine = productLines.length === 0 ? this.state.productLines : productLines;
-                let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
-                let newBackgroundColors = [];
-                let newBorderColors = [];
-
-                if (productLine.length !== 1) {
-                    for (const item of productLine) {
-                        newBackgroundColors.push(this.state.productColors[item].backgroundColor)
-                        newBorderColors.push(this.state.productColors[item].borderColor)
-                    }
+        this.setState({
+            loadingGraphs1to3: true,
+            loadingGraph4: true,
+            loadingGraph5: true,
+            loadingGraph6: true,
+            loadingPredictions: true,
+            graph1: undefined,
+            graph2: undefined,
+            graph3: undefined,
+            graph4: undefined,
+            graph5: undefined,
+            graph6: undefined,
+            predictions: undefined,
+            predictionsPL: undefined,
+            separateOnValues: undefined
+        }, () => {
+            this.getColumnValues(separateOn, (err, res) => {
+                if (err) {
+                    this.setState({
+                        errorMessage: "Failed to retrieve columns",
+                        loadingGraphs1to3: false,
+                        loadingGraph4: false,
+                        loadingGraph5: false,
+                        loadingGraph6: false,
+                        loadingPredictions: false
+                    });
                 }
                 else {
-                    for (let i = 0; i < categoryLabels.length; i++) {
-                        newBackgroundColors.push(backgroundColors[i]);
-                        newBorderColors.push(borderColors[i]);
-                    }
-                }
+                    this.setState({ separateOnValues: res.data.values });
+                    let categoryLabels = res.data.values;
+                    let productLine = productLines.length === 0 ? this.state.productLines : productLines;
+                    let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
+                    let newBackgroundColors = [];
+                    let newBorderColors = [];
 
-                this.getPredictedTrends(branch, endDate, productLine, (err, res) => {
-                    if (err) console.error(err);
-                    else{
-                        this.setState({
-                            predictions: res.data.predictions,
-                            predictionsPL: res.data.predictionsPL
-                        })
-                    }
-                });
-                this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                    if (err) console.error(err);
-                    else {
-                        let data1 = {};
-                        let data2 = {};
-                        let data3 = {};
-        
-                        data1["labels"] = datasetsLabels;
-                        data2["labels"] = datasetsLabels;
-                        data3["labels"] = productLine;
-        
-                        let grossIncome = [];
-                        let quantity = [];
-                        let grossIncomePerCategory = [];
-                        let quantityPerCategory = [];
-                        if (productLine.length > 1) {
-                            for (let i = 0; i < categoryLabels.length; i++) {
-                                quantityPerCategory.push([]);
-                                grossIncomePerCategory.push([]);
-                            }
+                    if (productLine.length !== 1) {
+                        for (const item of productLine) {
+                            newBackgroundColors.push(this.state.productColors[item].backgroundColor)
+                            newBorderColors.push(this.state.productColors[item].borderColor)
                         }
+                    }
+                    else {
+                        for (let i = 0; i < categoryLabels.length; i++) {
+                            newBackgroundColors.push(backgroundColors[i]);
+                            newBorderColors.push(borderColors[i]);
+                        }
+                    }
 
-                        for (const item of datasetsLabels) {
+                    this.getPredictedTrends(branch, endDate, productLine, (err, res) => {
+                        if (err) this.setState({errorMessage2: "Failed to retrieve predictions", loadingPredictions: false});
+                        else{
+                            this.setState({
+                                predictions: res.data.predictions,
+                                predictionsPL: res.data.predictionsPL,
+                                loadingPredictions: false
+                            })
+                        }
+                    });
+                    this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
+                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraphs1to3: false});
+                        else {
+                            let data1 = {};
+                            let data2 = {};
+                            let data3 = {};
+            
+                            data1["labels"] = datasetsLabels;
+                            data2["labels"] = datasetsLabels;
+                            data3["labels"] = productLine;
+            
+                            let grossIncome = [];
+                            let quantity = [];
+                            let grossIncomePerCategory = [];
+                            let quantityPerCategory = [];
                             if (productLine.length > 1) {
                                 for (let i = 0; i < categoryLabels.length; i++) {
-                                    quantityPerCategory[i].push(
-                                        res.data[item][categoryLabels[i]] ?
-                                        res.data[item][categoryLabels[i]].quantity :
-                                        0
-                                    );
-                                    grossIncomePerCategory[i].push(
-                                        res.data[item][categoryLabels[i]] ?
-                                        res.data[item][categoryLabels[i]].grossIncome :
-                                        0
-                                    );
+                                    quantityPerCategory.push([]);
+                                    grossIncomePerCategory.push([]);
                                 }
                             }
-                            grossIncome.push((productLine.length > 1) ? res.data[item].totalIncome
-                                : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].grossIncome : 0);
-                            quantity.push((productLine.length > 1) ? res.data[item].totalQuantity
-                                : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].quantity : 0);
-                        }
 
-                        data1["datasets"] = [{
-                            label: "Gross Income",
-                            backgroundColor: newBackgroundColors,
-                            borderColor: newBorderColors,
-                            data: grossIncome,
-                            borderWidth: 1
-                        }];
-                        data2["datasets"] = [{
-                            label: "Quantity",
-                            backgroundColor: newBackgroundColors,
-                            borderColor: newBorderColors,
-                            data: quantity,
-                            borderWidth: 1
-                        }];
-                        if (productLine.length > 1) {
-                            data3["datasets"] = [];
-                            for (let i = 0; i < categoryLabels.length; i++) {
-                                data3["datasets"].push({
-                                    label: categoryLabels[i],
-                                    backgroundColor: backgroundColors[i],
-                                    borderColor: borderColors[i],
-                                    data: quantityPerCategory[i],
-                                    borderWidth: 1
-                                });
+                            for (const item of datasetsLabels) {
+                                if (productLine.length > 1) {
+                                    for (let i = 0; i < categoryLabels.length; i++) {
+                                        quantityPerCategory[i].push(
+                                            res.data[item][categoryLabels[i]] ?
+                                            res.data[item][categoryLabels[i]].quantity :
+                                            0
+                                        );
+                                        grossIncomePerCategory[i].push(
+                                            res.data[item][categoryLabels[i]] ?
+                                            res.data[item][categoryLabels[i]].grossIncome :
+                                            0
+                                        );
+                                    }
+                                }
+                                grossIncome.push((productLine.length > 1) ? res.data[item].totalIncome
+                                    : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].grossIncome : 0);
+                                quantity.push((productLine.length > 1) ? res.data[item].totalQuantity
+                                    : (res.data[productLine[0]][item]) ? res.data[productLine[0]][item].quantity : 0);
                             }
-                        }
-        
-                        this.setState({
-                            graph1: data1,
-                            graph2: data2,
-                            graph3: (productLine.length > 1) ? data3 : undefined
-                        });
-                    }
-                });
 
-                this.getRatingsData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                    if (err) console.error(err);
-                    else {
-                        let data = {};
-                        data["labels"] = [];
-                        let datasetsData = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            datasetsData.push([])
-                        }
-                        for (let x = new Date(res.data.begDate), y = new Date(res.data.endDate); x <= y; x.setDate(x.getDate() + 1)) {
-                            let temp = x.toISOString().split("T")[0]
-                            data["labels"].push(temp)
-                            for (let i = 0; i < datasetsLabels.length; i++) {
-                                datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : null);
-                            }
-                        }
-        
-                        data["datasets"] = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            data["datasets"].push({
-                                label: datasetsLabels[i],
-                                backgroundColor: newBackgroundColors[i],
-                                borderColor: newBorderColors[i],
-                                data: datasetsData[i],
-                                borderWidth: 1,
-                                spanGaps: true
-                            })
-                        }
-        
-                        this.setState({graph4: data})
-                    }
-                });
-
-                this.getQuantityData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                    if (err) console.error(err);
-                    else {
-                        let data = {};
-                        data["labels"] = [];
-                        let datasetsData = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            datasetsData.push([])
-                        }
-                        for (let x = new Date(res.data.begDate), y = new Date(res.data.endDate); x <= y; x.setDate(x.getDate() + 1)) {
-                            let temp = x.toISOString().split("T")[0]
-                            data["labels"].push(temp)
-                            for (let i = 0; i < datasetsLabels.length; i++) {
-                                datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : 0);
-                            }
-                        }
-        
-                        data["datasets"] = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            data["datasets"].push({
-                                label: datasetsLabels[i],
-                                backgroundColor: newBackgroundColors[i],
-                                borderColor: newBorderColors[i],
-                                data: datasetsData[i],
-                                borderWidth: 1,
-                                spanGaps: true
-                            })
-                        }
-        
-                        this.setState({graph5: data})
-                    }
-                });
-
-                this.getQuantityPerTimeUnit(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                    if (err) console.error(err);
-                    else {
-                        let data = {};
-                        data["labels"] = [];
-                        let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
-                        let datasetsData = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            datasetsData.push([])
-                        }
-                        for (let i = res.data["minHour"]; i <= res.data["maxHour"]; i++) {
-                            data["labels"].push(i + ":00:00");
-                            for (let j = 0; j < datasetsLabels.length; j++) {
-                                datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i] ? res.data[datasetsLabels[j]][i] : 0);
-                            }
-                        }
-
-                        data["datasets"] = []
-                        for (let i = 0; i < datasetsLabels.length; i++) {
-                            data["datasets"].push({
-                                label: datasetsLabels[i],
-                                backgroundColor: newBackgroundColors[i],
-                                borderColor: newBorderColors[i],
-                                data: datasetsData[i],
+                            data1["datasets"] = [{
+                                label: "Gross Income",
+                                backgroundColor: newBackgroundColors,
+                                borderColor: newBorderColors,
+                                data: grossIncome,
                                 borderWidth: 1
-                            })
+                            }];
+                            data2["datasets"] = [{
+                                label: "Quantity",
+                                backgroundColor: newBackgroundColors,
+                                borderColor: newBorderColors,
+                                data: quantity,
+                                borderWidth: 1
+                            }];
+                            if (productLine.length > 1) {
+                                data3["datasets"] = [];
+                                for (let i = 0; i < categoryLabels.length; i++) {
+                                    data3["datasets"].push({
+                                        label: categoryLabels[i],
+                                        backgroundColor: backgroundColors[i],
+                                        borderColor: borderColors[i],
+                                        data: quantityPerCategory[i],
+                                        borderWidth: 1
+                                    });
+                                }
+                            }
+            
+                            this.setState({
+                                loadingGraphs1to3: false,
+                                graph1: data1,
+                                graph2: data2,
+                                graph3: (productLine.length > 1) ? data3 : undefined
+                            });
                         }
-        
-                        this.setState({graph6: data});
-                    }
-                });
-            }
-        });
+                    });
+
+                    this.getRatingsData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
+                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph4: false});
+                        else {
+                            let data = {};
+                            data["labels"] = [];
+                            let datasetsData = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                datasetsData.push([])
+                            }
+                            for (let x = new Date(res.data.begDate), y = new Date(res.data.endDate); x <= y; x.setDate(x.getDate() + 1)) {
+                                let temp = x.toISOString().split("T")[0]
+                                data["labels"].push(temp)
+                                for (let i = 0; i < datasetsLabels.length; i++) {
+                                    datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : null);
+                                }
+                            }
+            
+                            data["datasets"] = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                data["datasets"].push({
+                                    label: datasetsLabels[i],
+                                    backgroundColor: newBackgroundColors[i],
+                                    borderColor: newBorderColors[i],
+                                    data: datasetsData[i],
+                                    borderWidth: 1,
+                                    spanGaps: true
+                                })
+                            }
+            
+                            this.setState({loadingGraph4: false, graph4: data})
+                        }
+                    });
+
+                    this.getQuantityData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
+                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph5: false});
+                        else {
+                            let data = {};
+                            data["labels"] = [];
+                            let datasetsData = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                datasetsData.push([])
+                            }
+                            for (let x = new Date(res.data.begDate), y = new Date(res.data.endDate); x <= y; x.setDate(x.getDate() + 1)) {
+                                let temp = x.toISOString().split("T")[0]
+                                data["labels"].push(temp)
+                                for (let i = 0; i < datasetsLabels.length; i++) {
+                                    datasetsData[i].push(res.data[datasetsLabels[i]] && res.data[datasetsLabels[i]][temp] ? res.data[datasetsLabels[i]][temp] : 0);
+                                }
+                            }
+            
+                            data["datasets"] = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                data["datasets"].push({
+                                    label: datasetsLabels[i],
+                                    backgroundColor: newBackgroundColors[i],
+                                    borderColor: newBorderColors[i],
+                                    data: datasetsData[i],
+                                    borderWidth: 1,
+                                    spanGaps: true
+                                })
+                            }
+            
+                            this.setState({loadingGraph5: false, graph5: data})
+                        }
+                    });
+
+                    this.getQuantityPerTimeUnit(branch, begDate, endDate, productLines, separateOn, (err, res) => {
+                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph6: false});
+                        else {
+                            let data = {};
+                            data["labels"] = [];
+                            let datasetsLabels = (productLine.length === 1) ? categoryLabels : productLine;
+                            let datasetsData = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                datasetsData.push([])
+                            }
+                            for (let i = res.data["minHour"]; i <= res.data["maxHour"]; i++) {
+                                data["labels"].push(i + ":00:00");
+                                for (let j = 0; j < datasetsLabels.length; j++) {
+                                    datasetsData[j].push(res.data[datasetsLabels[j]] && res.data[datasetsLabels[j]][i] ? res.data[datasetsLabels[j]][i] : 0);
+                                }
+                            }
+
+                            data["datasets"] = []
+                            for (let i = 0; i < datasetsLabels.length; i++) {
+                                data["datasets"].push({
+                                    label: datasetsLabels[i],
+                                    backgroundColor: newBackgroundColors[i],
+                                    borderColor: newBorderColors[i],
+                                    data: datasetsData[i],
+                                    borderWidth: 1
+                                })
+                            }
+            
+                            this.setState({loadingGraph6: false, graph6: data});
+                        }
+                    });
+                }
+            })
+        })
     }
 
     getKeyDisplay() {
@@ -523,14 +552,19 @@ class Home extends React.Component {
                     <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
                     {this.state.predictions && this.getPredictionsDisplay()}
                     {this.getGraphDisplay()}
+                    {(this.state.loadingGraphs1to3 ||
+                      this.state.loadingGraph4 || 
+                      this.state.loadingGraph5 || 
+                      this.state.loadingGraph6 || 
+                      this.state.loadingPredictions) && <Loading />}
+                    {this.state.errorMessage && <p className="error-message">{this.state.errorMessage}</p>}
+                    {this.state.errorMessage2 && <p className="error-message">{this.state.errorMessage2}</p>}
                 </div>
             )
         }
         else {
             return (
-                <div id="authentication-page" className="authentication-page">
-                    <p>Waiting to be authenticated...</p>
-                </div>
+                <Loading loadingMessage="Authenticating"/>
             )
         }
     }

@@ -55,10 +55,10 @@ def parse_body_values(conn, body):
         body["separateOn"] = '"CustomerType"'
 
     if "modelMethod" not in body:
-        body["modelMethod"] = "increment"
+        body["modelMethod"] = "check"
 
     if "dataMethod" not in body:
-        body["dataMethod"] = "append"
+        body["dataMethod"] = "check"
 
     if "searchDate" not in body or not body["searchDate"]:
         body["searchDate"] = datetime.datetime.now()
@@ -351,7 +351,8 @@ def retrieve_trend_predictions():
 @login_required
 def update_model_data():
     global data_model_accessed
-    if data_model_accessed: return "", 500
+
+    if data_model_accessed: make_response({"inProcess": False})
     data_model_accessed = True
 
     try:
@@ -361,6 +362,10 @@ def update_model_data():
         with db_session.connection() as conn:
             body = request.get_json()
             body = parse_body_values(conn, body)
+            res = {}
+
+            if body["dataMethod"].lower() == "check":
+                res["inProcess"] = False
 
             if body["dataMethod"].lower() == "append":
                 query_results = conn.execute(f"""
@@ -493,7 +498,7 @@ def update_model_data():
             add_log(action="UPDATE", table="ModelData")
             db_session.commit()
             data_model_accessed = False
-            return "", 200
+            return make_response(res), 200
     except:
         data_model_accessed = False
         return "", 500
@@ -503,9 +508,9 @@ def update_model_data():
 @login_required
 def change_model():
     global data_model_accessed
-    if data_model_accessed: return "", 500
-    data_model_accessed = True
 
+    if data_model_accessed: return make_response({"inProcess": True})
+    data_model_accessed = True
     try:
         if not current_user.alter_model:
             return "", 403
@@ -515,6 +520,9 @@ def change_model():
             body = parse_body_values(conn, body)
             new_model = None
             res = {}
+
+            if body["modelMethod"].lower() == "check":
+                res["inProcess"] = False
             
             if body["modelMethod"].lower() == "increment":
                 new_model, res["trainAccuracy"], res["validAccuracy"] = model.train_model(10)

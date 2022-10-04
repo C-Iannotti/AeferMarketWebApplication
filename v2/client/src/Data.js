@@ -1,8 +1,6 @@
 import React from "react"
 import { withWrapper } from "./componentWrapper.js"
-import {
-    renderToString
-} from "react-dom/server"
+import Loading from "./Loading.js"
 import {
     getTables,
     getTableData,
@@ -81,27 +79,34 @@ class Data extends React.Component {
         if (constraints === undefined) {
             constraints = this.state.constraints;
         }
-
-        this.getTableData(table, constraints, columns, page, (err, res) => {
-            if (err) console.error(err);
-            else {
-                if (res.data.results.length > 0) {
-                    this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
-                    this.setState({
-                        queryColumns: res.data.columns,
-                        queryData: res.data.results,
-                        editable: res.data.editable,
-                        curQueryTable: this.state.curQueryTable + 1,
-                        tableColumns: this.state.tableColumns,
-                        pageNumber: page,
-                        columns,
-                        constraints,
-                        columnsInput: [],
-                        constraintsInput: []
-                    });
+        this.setState({
+            queryColumns: undefined,
+            queryData: undefined,
+            editable: undefined,
+            loadingTable: true
+        }, () => {
+            this.getTableData(table, constraints, columns, page, (err, res) => {
+                if (err) console.error(err);
+                else {
+                    if (res.data.results.length > 0) {
+                        this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
+                        this.setState({
+                            queryColumns: res.data.columns,
+                            queryData: res.data.results,
+                            editable: res.data.editable,
+                            curQueryTable: this.state.curQueryTable + 1,
+                            tableColumns: this.state.tableColumns,
+                            pageNumber: page,
+                            columns,
+                            constraints,
+                            columnsInput: [],
+                            constraintsInput: [],
+                            loadingTable: undefined
+                        });
+                    }
                 }
-            }
-        })
+            })
+        });
     }
 
     handleToggleEdit(method="edit") {
@@ -279,6 +284,7 @@ class Data extends React.Component {
                             })}
                         </div>
                     </div>
+                    {this.state.loadingTable && <Loading />}
                     {this.state.queryData &&
                         <div className="query-table-container">
                             {this.getPageInputsHTML()}
@@ -305,9 +311,7 @@ class Data extends React.Component {
         }
         else {
             return (
-                <div id="authentication-page" className="authentication-page">
-                    <p>Waiting to be authenticated...</p>
-                </div>
+                <Loading loadingMessage="Authenticating"/>
             )
         }
     }

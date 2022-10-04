@@ -1,5 +1,6 @@
 import React from "react"
 import { withWrapper } from "./componentWrapper.js"
+import Loading from "./Loading.js"
 import {
     login
 } from "./utils.js"
@@ -48,9 +49,7 @@ class Login extends React.Component {
         }
         else {
             return (
-                <div id="authentication-page" className="authentication-page">
-                    <p>Waiting to be authenticated...</p>
-                </div>
+                <Loading loadingMessage="Authenticating"/>
             )
         }
     }

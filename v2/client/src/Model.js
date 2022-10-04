@@ -1,5 +1,6 @@
 import React from "react";
 import { withWrapper } from "./componentWrapper.js";
+import Loading from "./Loading.js"
 import {
     replaceModelData,
     appendModelData,
@@ -44,11 +45,13 @@ class Model extends React.Component {
     handleAppendModelData() {
         this.appendModelData((err, res) => {
             if (err) {
-                this.setState({message: "Failed to format new data for model."});
+                this.setState({message: "Failed to format new data for model.", loadingAction: false});
             }
             else {
-                console.log(res);
-                this.setState({message: "Formatted new data for model."});
+                this.setState({
+                    message: res.data.inProcess ? "Action in process..." : "Formatted new data for model.",
+                    loadingAction: false
+                });
             }
             if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
@@ -57,10 +60,13 @@ class Model extends React.Component {
     handleReplaceModelData() {
         this.replaceModelData((err, res) => {
             if (err) {
-                this.setState({message: "Failed to reformat data for model."});
+                this.setState({message: "Failed to reformat data for model.", loadingAction: false});
             }
             else {
-                this.setState({message: "Reformatted data for model."});
+                this.setState({
+                    message:  res.data.inProcess ? "Action in process..." : "Reformatted data for model.",
+                    loadingAction: false
+                });
             }
             if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
@@ -69,10 +75,13 @@ class Model extends React.Component {
     handleIncrementModel() {
         this.incrementModel((err, res) => {
             if (err) {
-                this.setState({message: "Failed to train model."});
+                this.setState({message: "Failed to train model.", loadingAction: false});
             }
             else {
-                this.setState({message: "Trained model with new Accuracy: " + res.data.trainAccuracy});
+                this.setState({
+                    message:  res.data.inProcess ? "Action in process..." : "Trained model with new Accuracy: " + res.data.trainAccuracy,
+                    loadingAction: false
+                });
             }
             if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
@@ -81,10 +90,13 @@ class Model extends React.Component {
     handleRemakeModel() {
         this.remakeModel((err, res) => {
             if (err) {
-                this.setState({message: "Failed to reinitialize model."});
+                this.setState({message: "Failed to reinitialize model.", loadingAction: false});
             }
             else {
-                this.setState({message: "Reinitialized model with Accuracy: " + res.data.trainAccuracy});
+                this.setState({
+                    message:  res.data.inProcess ? "Action in process..." : "Reinitialized model with Accuracy: " + res.data.trainAccuracy,
+                    loadingAction: false
+                });
             }
             if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
@@ -94,10 +106,13 @@ class Model extends React.Component {
         let searchDate = document.getElementById("model-retrieval-date").value
         this.retrieveModel(searchDate, (err, res) => {
             if (err) {
-                this.setState({message: "Failed to retrieve model."});
+                this.setState({message: "Failed to retrieve model.", loadingAction: false});
             }
             else {
-                this.setState({message: "Retrieved model with id: " + res.data.id + " and timestamp: " + res.data.timestamp})
+                this.setState({
+                    message:  res.data.inProcess ? "Action in process..." : "Retrieved model with id: " + res.data.id + " and timestamp: " + res.data.timestamp,
+                    loadingAction: false
+                })
             }
             if (document.getElementById("model-page-action-button")) document.getElementById("model-page-action-button").removeAttribute("disabled");
         });
@@ -106,12 +121,17 @@ class Model extends React.Component {
     handleModelAction() {
         let modelAction = document.getElementById("model-page-action-input").value;
         document.getElementById("model-page-action-button").setAttribute("disabled", true);
-        
-        if (modelAction === "formatNewData") this.handleAppendModelData();
-        else if (modelAction === "replaceData") this.handleReplaceModelData();
-        else if (modelAction === "reinitializeModel") this.handleRemakeModel();
-        else if (modelAction === "trainModel") this.handleIncrementModel();
-        else this.handleRetrieveModel();
+
+        this.setState({
+            loadingAction: true,
+            message: undefined
+        }, () => {
+            if (modelAction === "formatNewData") this.handleAppendModelData();
+            else if (modelAction === "replaceData") this.handleReplaceModelData();
+            else if (modelAction === "reinitializeModel") this.handleRemakeModel();
+            else if (modelAction === "trainModel") this.handleIncrementModel();
+            else this.handleRetrieveModel();
+        })
     }
 
     render() {
@@ -133,15 +153,14 @@ class Model extends React.Component {
                         }
                         <button type="button" id="model-page-action-button" onClick={() => {this.handleModelAction()}}>Start</button>
                     </div>
+                    {this.state.loadingAction && <Loading />}
                     {this.state.message && <p className="model-page-message">{this.state.message}</p>}
                 </div>
             )
         }
         else {
             return (
-                <div id="authentication-page" className="authentication-page">
-                    <p>Waiting to be authenticated...</p>
-                </div>
+                <Loading loadingMessage="Authenticating"/>
             )
         }
     }

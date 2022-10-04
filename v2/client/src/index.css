@@ -260,6 +260,7 @@ code {
   align-items: center;
   width: 90vw;
   max-width: 250px;
+  margin: auto;
 }
 
 .data-page-inputs {
@@ -298,7 +299,7 @@ code {
 }
 
 .query-table-container {
-  width: 90vw;
+  max-width: 90vw;
   overflow-x: scroll;
 }
 
@@ -349,4 +350,76 @@ code {
   align-items: center;
   flex-wrap: wrap;
   gap: 15px;
+}
+
+.loading-component {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.dot-flashing {
+  position: relative;
+  border-radius: 50%;
+  background-color: #DA70D6;
+  color: #DA70D6;
+  animation: dotFlashing 1s infinite linear alternate;
+  animation-delay: .5s;
+}
+
+.dot-flashing::before, .dot-flashing::after {
+  content: '';
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.dot-flashing::before {
+  left: -15px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #DA70D6;
+  color: #DA70D6;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 0s;
+}
+
+.dot-flashing::after {
+  left: 15px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #DA70D6;
+  color: #DA70D6;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 1s;
+}
+
+.dot-flashing-loading {
+  width: 15px;
+  height: 15px;
+}
+
+.dot-flashing-loading::before {
+  left: -50px;
+  width: 15px;
+  height: 15px;
+}
+
+.dot-flashing-loading::after {
+  left: 50px;
+  width: 15px;
+  height: 15px;
+}
+
+@keyframes dotFlashing {
+  0% {
+      background-color: #DA70D6;
+  }
+  50%,
+  100% {
+      background-color: #ebe6ff;
+  }
 }
