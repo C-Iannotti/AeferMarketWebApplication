@@ -16,7 +16,7 @@ class Header extends React.Component {
 
     handleLogout() {
         this.logout((err, res) => {
-            if (err) console.error(err);
+            if (err) this.props.addMessage("Failed to logout");
             else {
                 this.props.setLogoutState();
                 this.props.navigate("/login");

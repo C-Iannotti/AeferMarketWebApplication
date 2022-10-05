@@ -45,9 +45,12 @@ class Model extends React.Component {
     handleAppendModelData() {
         this.appendModelData((err, res) => {
             if (err) {
+                this.props.addMessage("Failed to format new data for model");
                 this.setState({message: "Failed to format new data for model.", loadingAction: false});
             }
             else {
+                console.log(res);
+                this.props.addMessage(res.data.inProcess ? "Action in process..." : "Formatted new data for model.");
                 this.setState({
                     message: res.data.inProcess ? "Action in process..." : "Formatted new data for model.",
                     loadingAction: false
@@ -60,9 +63,11 @@ class Model extends React.Component {
     handleReplaceModelData() {
         this.replaceModelData((err, res) => {
             if (err) {
+                this.props.addMessage("Failed to reformat data for model");
                 this.setState({message: "Failed to reformat data for model.", loadingAction: false});
             }
             else {
+                this.props.addMessage(res.data.inProcess ? "Action in process..." : "Reformatted data for model");
                 this.setState({
                     message:  res.data.inProcess ? "Action in process..." : "Reformatted data for model.",
                     loadingAction: false
@@ -75,11 +80,13 @@ class Model extends React.Component {
     handleIncrementModel() {
         this.incrementModel((err, res) => {
             if (err) {
+                this.props.addMessage("Failed to train model");
                 this.setState({message: "Failed to train model.", loadingAction: false});
             }
             else {
+                this.props.addMessage(res.data.inProcess ? "Action in process..." : "Trained model with new Accuracy: " + res.data.validAccuracy);
                 this.setState({
-                    message:  res.data.inProcess ? "Action in process..." : "Trained model with new Accuracy: " + res.data.trainAccuracy,
+                    message:  res.data.inProcess ? "Action in process..." : "Trained model with new Accuracy: " + res.data.validAccuracy,
                     loadingAction: false
                 });
             }
@@ -90,11 +97,13 @@ class Model extends React.Component {
     handleRemakeModel() {
         this.remakeModel((err, res) => {
             if (err) {
+                this.props.addMessage("Failed to reinitialize model");
                 this.setState({message: "Failed to reinitialize model.", loadingAction: false});
             }
             else {
+                this.props.addMessage(res.data.inProcess ? "Action in process..." : "Reinitialized model with Accuracy: " + res.data.validAccuracy);
                 this.setState({
-                    message:  res.data.inProcess ? "Action in process..." : "Reinitialized model with Accuracy: " + res.data.trainAccuracy,
+                    message:  res.data.inProcess ? "Action in process..." : "Reinitialized model with Accuracy: " + res.data.validAccuracy,
                     loadingAction: false
                 });
             }
@@ -106,9 +115,11 @@ class Model extends React.Component {
         let searchDate = document.getElementById("model-retrieval-date").value
         this.retrieveModel(searchDate, (err, res) => {
             if (err) {
+                this.props.addMessage("Failed to retrieve model");
                 this.setState({message: "Failed to retrieve model.", loadingAction: false});
             }
             else {
+                this.props.addMessage(res.data.inProcess ? "Action in process..." : "Retrieved model with id: " + res.data.id + " and timestamp: " + res.data.timestamp);
                 this.setState({
                     message:  res.data.inProcess ? "Action in process..." : "Retrieved model with id: " + res.data.id + " and timestamp: " + res.data.timestamp,
                     loadingAction: false
@@ -122,15 +133,17 @@ class Model extends React.Component {
         let modelAction = document.getElementById("model-page-action-input").value;
         document.getElementById("model-page-action-button").setAttribute("disabled", true);
 
-        this.setState({
-            loadingAction: true,
-            message: undefined
-        }, () => {
-            if (modelAction === "formatNewData") this.handleAppendModelData();
-            else if (modelAction === "replaceData") this.handleReplaceModelData();
-            else if (modelAction === "reinitializeModel") this.handleRemakeModel();
-            else if (modelAction === "trainModel") this.handleIncrementModel();
-            else this.handleRetrieveModel();
+        this.props.runFunctionAcrossApp(() => {
+            this.setState({
+                loadingAction: true,
+                message: undefined
+            }, () => {
+                if (modelAction === "formatNewData") this.handleAppendModelData();
+                else if (modelAction === "replaceData") this.handleReplaceModelData();
+                else if (modelAction === "reinitializeModel") this.handleRemakeModel();
+                else if (modelAction === "trainModel") this.handleIncrementModel();
+                else this.handleRetrieveModel();
+            })
         })
     }
 

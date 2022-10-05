@@ -351,8 +351,9 @@ def retrieve_trend_predictions():
 @login_required
 def update_model_data():
     global data_model_accessed
+    print(data_model_accessed)
 
-    if data_model_accessed: make_response({"inProcess": False})
+    if data_model_accessed: return make_response({"inProcess": True})
     data_model_accessed = True
 
     try:
@@ -508,6 +509,7 @@ def update_model_data():
 @login_required
 def change_model():
     global data_model_accessed
+    print(data_model_accessed)
 
     if data_model_accessed: return make_response({"inProcess": True})
     data_model_accessed = True

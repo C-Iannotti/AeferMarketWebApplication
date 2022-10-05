@@ -38,7 +38,7 @@ class Data extends React.Component {
             }
             else {
                 this.getTables((err, res) => {
-                    if (err) console.error(err);
+                    if (err) this.props.addMessage("Failed to retrieve available tables");
                     else {
                         let tables = []
                         let tableColumns = {}
@@ -86,16 +86,17 @@ class Data extends React.Component {
             loadingTable: true
         }, () => {
             this.getTableData(table, constraints, columns, page, (err, res) => {
-                if (err) console.error(err);
+                if (err) this.props.addMessage("Failed to retrieve data");
                 else {
                     if (res.data.results.length > 0) {
-                        this.state.tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
+                        let tableColumns = Object.assign({}, this.state.tableColumns)
+                        tableColumns[this.state.curTable].pkColumns = res.data.pkColumns
                         this.setState({
                             queryColumns: res.data.columns,
                             queryData: res.data.results,
                             editable: res.data.editable,
                             curQueryTable: this.state.curQueryTable + 1,
-                            tableColumns: this.state.tableColumns,
+                            tableColumns: tableColumns,
                             pageNumber: page,
                             columns,
                             constraints,
@@ -147,7 +148,7 @@ class Data extends React.Component {
             columns.push(node.childNodes[0].nodeValue)
         }
         this.updateSalesData(pkData, data, columns, (err, res) => {
-            if (err) console.error(err);
+            if (err) this.props.addMessage("Failed to update data");
             else {
                 this.handleRetrieveDataPage();
             }

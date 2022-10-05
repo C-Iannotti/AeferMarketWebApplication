@@ -145,7 +145,7 @@ class Home extends React.Component {
 
     componentDidMount() {
         this.getColumnValues("ProductLine", (err, res) => {
-            if (err) console.error(err);
+            if (err) this.props.addMessage("Failed to retrieve product lines");
             else {
                 let productColors = {};
                 for (let i = 0; i < res.data.values.length; i++) {
@@ -158,7 +158,7 @@ class Home extends React.Component {
             }
         });
         this.getColumnValues("branch", (err, res) => {
-            if (err) console.error(err);
+            if (err) this.props.addMessage("Failed to retrieve branches");
             else{
                 this.setState({ branches: res.data.values });
             }
@@ -195,8 +195,8 @@ class Home extends React.Component {
         }, () => {
             this.getColumnValues(separateOn, (err, res) => {
                 if (err) {
+                    this.props.addMessage("Failed to retrieve columns");
                     this.setState({
-                        errorMessage: "Failed to retrieve columns",
                         loadingGraphs1to3: false,
                         loadingGraph4: false,
                         loadingGraph5: false,
@@ -226,7 +226,10 @@ class Home extends React.Component {
                     }
 
                     this.getPredictedTrends(branch, endDate, productLine, (err, res) => {
-                        if (err) this.setState({errorMessage2: "Failed to retrieve predictions", loadingPredictions: false});
+                        if (err) {
+                            this.props.addMessage("Failed to retrieve predictions");
+                            this.setState({loadingPredictions: false});
+                        }
                         else{
                             this.setState({
                                 predictions: res.data.predictions,
@@ -236,7 +239,10 @@ class Home extends React.Component {
                         }
                     });
                     this.getSalesData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraphs1to3: false});
+                        if (err) {
+                            this.props.addMessage("Failed to retrieve a graph group");
+                            this.setState({loadingGraphs1to3: false});
+                        }
                         else {
                             let data1 = {};
                             let data2 = {};
@@ -315,7 +321,10 @@ class Home extends React.Component {
                     });
 
                     this.getRatingsData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph4: false});
+                        if (err) {
+                            this.props.addMessage("Failed to retrieve a graph");
+                            this.setState({loadingGraph4: false});
+                        }
                         else {
                             let data = {};
                             data["labels"] = [];
@@ -348,7 +357,10 @@ class Home extends React.Component {
                     });
 
                     this.getQuantityData(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph5: false});
+                        if (err) {
+                            this.props.addMessage("Failed to retrieve a graph");
+                            this.setState({loadingGraph5: false});
+                        }
                         else {
                             let data = {};
                             data["labels"] = [];
@@ -381,7 +393,10 @@ class Home extends React.Component {
                     });
 
                     this.getQuantityPerTimeUnit(branch, begDate, endDate, productLines, separateOn, (err, res) => {
-                        if (err) this.setState({errorMessage: "Failed to retrieve graph(s)", loadingGraph6: false});
+                        if (err) {
+                            this.props.addMessage("Failed to retrieve a graph");
+                            this.setState({loadingGraph6: false});
+                        }
                         else {
                             let data = {};
                             data["labels"] = [];
@@ -557,8 +572,6 @@ class Home extends React.Component {
                       this.state.loadingGraph5 || 
                       this.state.loadingGraph6 || 
                       this.state.loadingPredictions) && <Loading />}
-                    {this.state.errorMessage && <p className="error-message">{this.state.errorMessage}</p>}
-                    {this.state.errorMessage2 && <p className="error-message">{this.state.errorMessage2}</p>}
                 </div>
             )
         }

@@ -25,14 +25,17 @@ class Login extends React.Component {
         let username = document.getElementById("username-input").value;
         let password = document.getElementById("password-input").value;
         this.login(username, password, (err, res) => {
-            if (err) console.error(err);
+            if (err) {
+                if (err.response.status === 401) this.props.addMessage("Invalid username/password");
+                else this.props.addMessage("Failed to login");
+            }
             else {
                 this.props.checkLogin((err, res) => {
-                    if (err) console.error(err);
+                    if (err) this.props.addMessage("Failed to login");
                     else {
                         this.props.navigate("/");
                     }
-                })
+                });
             }
         });
     }

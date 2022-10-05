@@ -44,7 +44,7 @@ class Logs extends React.Component {
         }, () => {
             this.getTableData("Logs", undefined, undefined, pageNumber, (err, res) => {
                 if (err) {
-                    console.error(err);
+                    this.props.addMessage("Failed to retrieve logs");
                     this.setState({
                         pageNumberInput: this.state.pageNumber,
                         logData,
@@ -53,7 +53,6 @@ class Logs extends React.Component {
                     });
                 }
                 else {
-                    console.log(res);
                     for (let node of document.getElementsByClassName("display-arrow")) {
                         node.removeAttribute("disabled");
                     }
