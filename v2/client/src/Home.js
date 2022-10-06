@@ -70,7 +70,7 @@ function Carousel(props) {
         <div {...handlers} className="graph-carousel">
             <div id="graph-carousel-inner" className="graph-carousel-inner" style={{transform: "translateX(-0%"}}>
                 {props.graph3 &&
-                    <div className="graph3 carousel-item">
+                    <div className="sales-graph carousel-item">
                         <Bar data={props.graph3}
                             options={{
                                 plugins: {legend: false},
@@ -87,17 +87,8 @@ function Carousel(props) {
                             }}/>
                     </div>
                 }
-                {props.graph6 &&
-                    <div className="graph3 carousel-item">
-                        <Bar data={props.graph6}
-                            options={{
-                                plugins: {legend: false},
-                                maintainAspectRatio: false
-                            }}/>
-                    </div>
-                }
                 {props.graph4 &&
-                    <div className="graph4 carousel-item">
+                    <div className="sales-graph carousel-item">
                         <Line data={props.graph4}
                             options={{
                                 plugins: {legend: false},
@@ -106,8 +97,17 @@ function Carousel(props) {
                     </div>
                 }
                 {props.graph5 &&
-                    <div className="graph4 carousel-item">
+                    <div className="sales-graph carousel-item">
                         <Line data={props.graph5}
+                            options={{
+                                plugins: {legend: false},
+                                maintainAspectRatio: false
+                            }}/>
+                    </div>
+                }
+                {props.graph6 &&
+                    <div className="sales-graph carousel-item">
+                        <Bar data={props.graph6}
                             options={{
                                 plugins: {legend: false},
                                 maintainAspectRatio: false
@@ -474,9 +474,9 @@ class Home extends React.Component {
     getGraphDisplay() {
         return  (
             <div className="graph-display">
-                <div className="sales-graph-group1">
+                <div className="sales-graph-group">
                     {this.state.graph1 &&
-                        <div className="graph1">
+                        <div className="sales-graph-group-item">
                             <Pie data={this.state.graph1}
                                 options={{
                                     plugins: {legend: false},
@@ -485,7 +485,7 @@ class Home extends React.Component {
                         </div>
                     }
                     {this.state.graph2 &&
-                        <div className="graph1">
+                        <div className="sales-graph-group-item">
                             <Pie data={this.state.graph2}
                                 options={{
                                     plugins: {legend: false},

@@ -16,8 +16,8 @@ class Data extends React.Component {
             columns: [],
             constraintsInput: [],
             columnsInput: [],
-            pageNumber: 0,
-            pageNumberInput: 0
+            pageNumber: 1,
+            pageNumberInput: 1
         };
 
         this.getTables = getTables.bind(this);
@@ -63,11 +63,11 @@ class Data extends React.Component {
 
     handleRetrieveData() {
         this.setState({
-            pageNumberInput: 0
-        }, () => this.handleRetrieveDataPage(0, this.state.curTable, this.state.columnsInput, this.state.constraintsInput))
+            pageNumberInput: 1
+        }, () => this.handleRetrieveDataPage(1, this.state.curTable, this.state.columnsInput, this.state.constraintsInput))
     }
 
-    handleRetrieveDataPage(page=0, table=undefined, columns=undefined, constraints=undefined) {
+    handleRetrieveDataPage(page=1, table=undefined, columns=undefined, constraints=undefined) {
         if (table === undefined) {
             table = this.state.curTable;
         }
@@ -79,14 +79,28 @@ class Data extends React.Component {
         if (constraints === undefined) {
             constraints = this.state.constraints;
         }
+
+        let queryData = this.state.queryData;
+        let editable = this.state.editable;
+        let queryColumns = this.state.queryColumns;
+
         this.setState({
             queryColumns: undefined,
             queryData: undefined,
             editable: undefined,
             loadingTable: true
         }, () => {
-            this.getTableData(table, constraints, columns, page, (err, res) => {
-                if (err) this.props.addMessage("Failed to retrieve data");
+            this.getTableData(table, constraints, columns, page - 1, (err, res) => {
+                if (err || res.data.results.length <= 0) {
+                    this.props.addMessage("Failed to retrieve data");
+                    this.setState({
+                        pageNumberInput: this.state.pageNumber,
+                        queryData,
+                        queryColumns,
+                        editable,
+                        loadingTable: false
+                    });
+                }
                 else {
                     if (res.data.results.length > 0) {
                         let tableColumns = Object.assign({}, this.state.tableColumns)
@@ -98,6 +112,7 @@ class Data extends React.Component {
                             curQueryTable: this.state.curQueryTable + 1,
                             tableColumns: tableColumns,
                             pageNumber: page,
+                            pageNumberInput: page,
                             columns,
                             constraints,
                             columnsInput: [],
@@ -156,7 +171,6 @@ class Data extends React.Component {
     }
 
     handlePageInputEvent(e) {
-        console.log(e.key)
         if (e.key === "Enter") {
             this.handleRetrieveDataPage(this.state.pageNumberInput)
         }
@@ -176,8 +190,8 @@ class Data extends React.Component {
         if (this.props.authenticated) {
             return (
                 <div className="data-page">
-                    <div className="query-inputs">
-                        <div className="query-input-row">
+                    <div className="data-query-inputs">
+                        <div className="data-query-input-row">
                             <select id="table-input" value={this.state.curTable} onChange={e => {
                                 this.setState({curTable: e.target.value, constraintsInput: [], columnsInput: []});
                             }}>
@@ -192,8 +206,8 @@ class Data extends React.Component {
                                 })
                             }}>Clear Inputs</button>
                         </div>
-                        <div className="query-columns-inputs query-input-specification">
-                            <div className="query-input-specification-inputs">
+                        <div className="data-query-columns-inputs data-query-input-specification">
+                            <div className="data-query-input-specification-inputs">
                                 <select id="column-column-input">
                                     {this.state.tableColumns && [].concat(this.state.tableColumns[this.state.curTable].pkColumns, this.state.tableColumns[this.state.curTable].columns).map(x => {
                                         return <option value={x} key={x + "_column_" + this.state.curColumn}>{x}</option>
@@ -204,15 +218,15 @@ class Data extends React.Component {
                                     <option value="DESC">Decending</option>
                                 </select>
                             </div>
-                            <div className="add-specification-button" onClick={() => {
+                            <button type="button" className="add-specification-button" onClick={() => {
                                 let column = document.getElementById("column-column-input").value;
                                 let columnSort = document.getElementById("column-sort-input").value;
                                 this.state.columnsInput.push([column, columnSort]);
                                 this.setState({columnsInput: this.state.columnsInput})
-                            }}>+</div>
+                            }}>+</button>
                         </div>
-                        <div className="query-constraints-inputs query-input-specification">
-                            <div className="query-input-specification-inputs">
+                        <div className="data-query-constraints-inputs data-query-input-specification">
+                            <div className="data-query-input-specification-inputs">
                                 <select id="constraint-column-input">
                                     {this.state.tableColumns && [].concat(this.state.tableColumns[this.state.curTable].pkColumns, this.state.tableColumns[this.state.curTable].columns).map(x => {
                                         return <option value={x} key={x + "_constraint_" + this.state.curConstraint}>{x}</option>
@@ -223,15 +237,15 @@ class Data extends React.Component {
                                     <option value="<=">&#8804;</option>
                                     <option value=">=">&#8805;</option>
                                 </select>
-                                <input type="text" id="constraint-value-input" />
+                                <input className="data-query-constraint-value" type="text" id="constraint-value-input" />
                             </div>
-                            <div className="add-specification-button" onClick={() => {
+                            <button type="button" className="add-specification-button" onClick={() => {
                                 let constraintColumn = document.getElementById("constraint-column-input").value;
                                 let constraintComparison = document.getElementById("constraint-comparison-input").value;
                                 let constraintValue = document.getElementById("constraint-value-input").value;
                                 this.state.constraintsInput.push([constraintColumn, constraintComparison, constraintValue]);
                                 this.setState({constraintsInput: this.state.constraintsInput})
-                            }}>+</div>
+                            }}>+</button>
                         </div>
                     </div>
                     <div className="query-buttons">
@@ -288,7 +302,6 @@ class Data extends React.Component {
                     {this.state.loadingTable && <Loading />}
                     {this.state.queryData &&
                         <div className="query-table-container">
-                            {this.getPageInputsHTML()}
                             <table id="query-table" key={this.state.curQueryTable}>
                                 <thead id="query-table-header">
                                     {this.state.tableColumns &&
@@ -304,9 +317,9 @@ class Data extends React.Component {
                                     return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i}suppressContentEditableWarning={true} contentEditable={i >= this.state.tableColumns[this.state.curTable].pkColumns.length && this.state.editQuery}>{y}</td>)}</tr>
                                 })}</tbody>
                             </table>
-                            {this.getPageInputsHTML()}
                         </div>
                     }
+                    {this.state.queryData && this.getPageInputsHTML()}
                 </div>
             )
         }

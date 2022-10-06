@@ -43,10 +43,12 @@ class Login extends React.Component {
     render() {
         if (this.props.authenticated === false) {
             return (
-                <div id="login-page">
-                    <input type="text" id="username-input" placeholder="Username"/>
-                    <input type="password" id="password-input" placeholder="Password" />
-                    <button type="button" onClick={this.handleLogin}>Submit</button>
+                <div id="login-page" className="login-page">
+                    <div className="login-page-inputs">
+                        <input type="text" id="username-input" placeholder="Username"/>
+                        <input type="password" id="password-input" placeholder="Password" />
+                    </div>
+                    <button className="login-button" type="button" onClick={this.handleLogin}>Sign in</button>
                 </div>
             )
         }

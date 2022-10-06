@@ -9,8 +9,8 @@ class Logs extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            pageNumber: 0,
-            pageNumberInput: 0
+            pageNumber: 1,
+            pageNumberInput: 1
         };
 
         this.getTableData = getTableData.bind(this);
@@ -24,7 +24,7 @@ class Logs extends React.Component {
                 this.props.navigate("/login");
             }
             else {
-                this.handleRetrieveLogs(0);
+                this.handleRetrieveLogs(this.state.pageNumber);
             }
         })
     }
@@ -42,14 +42,15 @@ class Logs extends React.Component {
             columns: undefined,
             pkColumns: undefined
         }, () => {
-            this.getTableData("Logs", undefined, undefined, pageNumber, (err, res) => {
-                if (err) {
+            this.getTableData("Logs", undefined, undefined, pageNumber - 1, (err, res) => {
+                if (err || res.data.results.length <= 0) {
                     this.props.addMessage("Failed to retrieve logs");
                     this.setState({
                         pageNumberInput: this.state.pageNumber,
                         logData,
                         columns,
-                        pkColumns
+                        pkColumns,
+                        loadingTable: false
                     });
                 }
                 else {
@@ -59,6 +60,7 @@ class Logs extends React.Component {
                     if (res.data.results.length > 0) {
                         this.setState({
                             pageNumber,
+                            pageNumberInput: pageNumber,
                             logData: res.data.results,
                             columns: res.data.columns,
                             pkColumns: res.data.pkColumns,
@@ -71,9 +73,8 @@ class Logs extends React.Component {
     }
 
     handlePageInputEvent(e) {
-        console.log(e.key)
         if (e.key === "Enter") {
-            this.handleRetrieveLogs()
+            this.handleRetrieveLogs(this.state.pageNumberInput)
         }
     }
 
@@ -91,9 +92,9 @@ class Logs extends React.Component {
         if (this.props.authenticated) {
             return (
                 <div className="logs-page">
+                    {this.state.loadingTable && <Loading />}
                     {this.state.logData &&
                         <div className="query-table-container">
-                            {this.getPageInputsHTML()}
                             <table id="query-table" key={this.state.curQueryTable}>
                                 <thead id="query-table-header">
                                     {this.state.columns &&
@@ -109,9 +110,9 @@ class Logs extends React.Component {
                                     return <tr key={j}>{x.map((y, i) => <td key={j + "_" + i} >{y}</td>)}</tr>
                                 })}</tbody>
                             </table>
-                            {this.getPageInputsHTML()}
                         </div>
                     }
+                    {this.state.logData && this.getPageInputsHTML()}
                 </div>
             )
         }
