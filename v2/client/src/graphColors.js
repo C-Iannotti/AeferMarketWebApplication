@@ -1,3 +1,4 @@
+// Background colors for graph data
 let backgroundColors = [
     'rgba(38, 114, 120, 0.2)',
     'rgba(101, 51, 141, 0.2)',
@@ -12,6 +13,7 @@ let backgroundColors = [
     'rgba(228, 176, 49, 0.2)',
 ]
 
+// Border colors for graph data
 let borderColors = [
     'rgba(38, 114, 120, 1)',
     'rgba(101, 51, 141, 1)',

@@ -4,6 +4,10 @@ import {
     logout
 } from "./utils.js"
 
+/*
+ * A React component that displays the header across the website
+ * for logging in and manuevering around the website.
+ */
 class Header extends React.Component {
     constructor(props) {
         super(props);

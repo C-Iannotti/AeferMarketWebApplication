@@ -5,6 +5,10 @@ import {
     getTableData
 } from "./utils.js"
 
+/*
+ * A React component for displaying the log data and
+ * the UI component for interacting with it.
+ */
 class Logs extends React.Component {
     constructor(props) {
         super(props);

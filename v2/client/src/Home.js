@@ -21,6 +21,10 @@ import {
     getPredictedTrends
 } from "./utils.js";
 
+/*
+ * A React function component for displaying the retrieved graphs
+ * as a carousel.
+ */
 function Carousel(props) {
     const [carouselNumber, setCarouselNumber] = useState(0);
     let max = Number(Boolean(props.graph3)) +
@@ -124,6 +128,10 @@ function Carousel(props) {
     )
 }
 
+/*
+ * A React component for displaying graphs and the UI components for interacting
+ * with them.
+ */
 class Home extends React.Component {
     constructor(props) {
         super(props);

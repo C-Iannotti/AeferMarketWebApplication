@@ -5,6 +5,9 @@ import {
     login
 } from "./utils.js"
 
+/*
+ * A React component for displaying the login UI
+ */
 class Login extends React.Component {
     constructor(props) {
         super(props);

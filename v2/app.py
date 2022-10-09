@@ -7,6 +7,7 @@ from database import db_session, init_db
 from models import Sales, Users, ModelData, Logs
 from dotenv import load_dotenv
 
+# imports API path functions
 import graph_apis
 import authentication_apis
 import ml_model_apis
@@ -14,14 +15,24 @@ import db_info_apis
 
 load_dotenv()
 
+# creates and configures Flask app
 app = Flask(__name__, static_folder="client/build", template_folder="client/build")
 app.config["SECRET_KEY"] = os.getenv("SECRET")
 app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(minutes=30)
 cors = CORS(app, origins="http://localhost",
       supports_credentials=True)
+
+# creates and configures login manager for session-based logins
 login_manager = LoginManager()
 login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(user_id)
 
+# inputs: path
+#
+# The default path that returns the React app
+# for the client to use.
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
 def home(path):
@@ -50,10 +61,7 @@ app.add_url_rule("/api/retrieve-trend-predictions", view_func=ml_model_apis.retr
 app.add_url_rule("/api/update-model-data", view_func=ml_model_apis.update_model_data, methods=["POST"])
 app.add_url_rule("/api/change-model", view_func=ml_model_apis.change_model, methods=["POST"])
 
-@login_manager.user_loader
-def load_user(user_id):
-    return Users.query.get(user_id)
-
+# Adds headers to each request response
 @app.after_request
 def apply_headers(res):
     res.headers.add("Access-Control-Allow-Origin", os.getenv("WHITELISTED"))
@@ -62,6 +70,7 @@ def apply_headers(res):
     res.headers.add("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Allow-Credentials")
     return res
 
+# Shutsdown connected components upon Flask app shutdown.
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db_session.remove()

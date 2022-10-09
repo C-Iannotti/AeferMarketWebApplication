@@ -1,7 +1,8 @@
 import React from "react";
 
-/* React component for displaying a loading visual
-*/
+/* 
+ * A React component for displaying a loading visual
+ */
 export default class Loading extends React.Component {
     constructor(props) {
         super(props);

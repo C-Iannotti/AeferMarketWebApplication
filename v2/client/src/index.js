@@ -15,6 +15,11 @@ import {
   authenticate
 } from "./utils.js"
 
+/*
+ * A React component for displaying the website
+ * for each website route, displaying the website
+ * messaging system, and managing the login session.
+ */
 class App extends React.Component {
   constructor(props) {
     super(props)

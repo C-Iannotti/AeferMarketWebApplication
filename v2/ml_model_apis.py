@@ -12,6 +12,10 @@ from sales_ml_model import MLModel
 model = MLModel()
 data_model_accessed = False
 
+# Parses sent http body inputs for values for
+# begDate, endDate, modelMethod, dataMethod, searchDate,
+# and productLine and assigns them valid values if they
+# do not have them.
 def parse_body_values(conn, body):
     if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
         body["endDate"] = conn.execute('SELECT "Date" FROM "Sales" GROUP BY "Date" ORDER BY "Date" DESC LIMIT 1').first()[0]
@@ -22,14 +26,7 @@ def parse_body_values(conn, body):
             body["endDate"] = parser.parse(body["endDate"]).date()
         except:
             body["endDate"] = datetime.date.today()
-    
-    if "begDate" not in body or not body["begDate"]:
-        body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
-    else:
-        try:
-            body["begDate"] = parser.parse(body["begDate"]).date()
-        except:
-            body["begDate"] = body["endDate"] - relativedelta.relativedelta(days=30)
+    body["begDate"] = body["endDate"] - datetime.timedelta(days=13)
 
     if "modelMethod" not in body:
         body["modelMethod"] = "check"
@@ -40,22 +37,33 @@ def parse_body_values(conn, body):
     if "searchDate" not in body or not body["searchDate"]:
         body["searchDate"] = datetime.datetime.now()
 
-    if "table" in body and body["table"].lower() == "sales":
-        body["table"] = "Sales"
-    elif "table" in body and body["table"].lower() == "logs":
-        body["table"] = "Logs"
-    else:
-        body["table"] = "ModelWeights"
+    product_lines = []
+
+    if "productLine" in body and isinstance(body["productLine"], list):
+        for product_line in body["productLine"]:
+            if "," not in product_line:
+                product_lines.append(product_line)
+
+    body["productLine"] = product_lines
 
     return body
 
+# requires a session-based login cookie
+# http body inputs: branch, begDate, endDate,
+#   productLine
+# 
+# Parses body for branch, begDate, endDate,
+# and productLine and uses current model and
+# quantities between bgeDate and endDate to make
+# predications for the next day of productLine's
+# general quantity trend (0 for down, 1 for
+# roughly similar, and 2 for up).
 @login_required
 def retrieve_trend_predictions():
     with db_session.connection() as conn:
         body = request.get_json()
         body = parse_body_values(conn, body)
-        model = tf.keras.models.load_model("./model/model.h5")
-        body["begDate"] = body["endDate"] - datetime.timedelta(days=13)
+        model = globals()['model'].model
         prediction_month = (body["endDate"] + datetime.timedelta(days=1)).month
 
         model_columns = pd.read_pickle("./model/transformed_model_columns.pkl")
@@ -65,7 +73,7 @@ def retrieve_trend_predictions():
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
-            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if len(body["productLine"]) > 0 else ""}
             GROUP BY "ProductLine", "Date"
             ORDER BY "ProductLine", "Date";
         """)
@@ -102,10 +110,23 @@ def retrieve_trend_predictions():
         res = make_response(results)
         return res
 
+# requires a session-based login cookie
+# requires neither the model data nor model
+# to be being updated
+# http body inputs: dataMethod
+# 
+# Parses body for the dataMethod. Based on
+# the dataMethod, either returns whether
+# currently in process (check), adds the
+# quantities for each group of branch and
+# product line for a day that is not already
+# in the model data (append), or recreates the
+# model data in its entirety (replace). Creates
+# an update model data log and stores model data
+# locally.
 @login_required
 def update_model_data():
     global data_model_accessed
-    print(data_model_accessed)
 
     if data_model_accessed: return make_response({"inProcess": True})
     data_model_accessed = True
@@ -258,6 +279,19 @@ def update_model_data():
         data_model_accessed = False
         return "", 500
 
+# requires a session-based login cookie
+# requires neither the model data nor model
+# to be being updated
+# http body inputs: modelMethod
+# 
+# Parses body for the modelMethod. Based on
+# the modelMethod, either returns whether
+# currently in process (check), trains the
+# model (increment), recreates the model
+# in its entirety (remake), or retrieves a
+# previously stored model (retrieval). Creates
+# an update model log and adds model to database
+# session if modelMethod was increment or remake.
 @login_required
 def change_model():
     global data_model_accessed

@@ -6,6 +6,14 @@ from database import db_session
 from models import Users
 from utils import add_log
 
+# http body inputs: username, password
+# returns: message
+# 
+# Creates a session-based login cookie and
+# assigns it to the requesting user if the given
+# username and password matches a user in the
+# database session. Then, a login log instance is
+# created.
 def login():
     with db_session.connection() as conn:
         body = request.get_json()
@@ -29,12 +37,24 @@ def login():
         res = make_response({ "message": "Logged in"})
         return res
 
+# requires a session-based login cookie
+# returns: message
+# 
+# Ends the current session by invalidating
+# the requesting user's login cookie.
 @login_required
 def logout():
     logout_user()
     res = make_response({ "message": "Logged out user" })
     return res
 
+# returns: isAuthenticated, username,
+#   dataAccess, logsAccess, modelAccess
+#
+# Checks if the requesting user has a valid
+# login cookie, and returns either an error if
+# they do not have one or information about the
+# logged in user.
 def authenticate():
     if current_user.is_authenticated:
         return make_response({

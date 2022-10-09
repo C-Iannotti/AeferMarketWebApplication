@@ -7,6 +7,10 @@ import {
     updateSalesData
 } from "./utils.js"
 
+/*
+ * A React component for displaying the table data retrieved from APIs
+ * and UI interaction with it.
+ */
 class Data extends React.Component {
     constructor(props) {
         super(props);

@@ -5,7 +5,20 @@ from flask_login import current_user, login_required
 from utils import add_log
 import simplejson as json
 
+# Parses sent http body inputs for values for column,
+# table, constraints, columns, data, pkData, and pageNumber
+# and assigns them valid values if they do not have
+# them.
 def parse_body_values(conn, body):
+
+    if "column" in body and body["column"].lower() == "customertype":
+        body["column"] = '"CustomerType"'
+    elif "column" in body and body["column"].lower() == "gender":
+        body["column"] = '"Gender"'
+    elif "column" in body and body["column"].lower() == "branch":
+        body["column"] = '"Branch", "City"'
+    else:
+        body["column"] = '"ProductLine"'
 
     if "table" in body and body["table"].lower() == "sales":
         body["table"] = "Sales"
@@ -18,7 +31,11 @@ def parse_body_values(conn, body):
         body["constraints"] = []
 
     if "columns" not in body or not isinstance(body["columns"], list):
-        body["columns"] = []
+        body["columns"] = ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
+    if "data" not in body:
+        body["data"] = []
+    if "pkData" not in body:
+        body["pkData"] = []
 
     if "pageNumber" not in body:
         body["pageNumber"] = 0
@@ -30,20 +47,19 @@ def parse_body_values(conn, body):
 
     return body
 
+# http body inputs: column
+# returns: values
+#
+# Parses the body for column and retrieves
+# the unique values in the column and returns
+# them.
 def retrieve_column_values():
     with db_session.connection() as conn:
         body = request.get_json()
-
-        if "column" in body and body["column"].lower() == "customertype":
-            body["column"] = '"CustomerType"'
-        elif "column" in body and body["column"].lower() == "gender":
-            body["column"] = '"Gender"'
-        elif "column" in body and body["column"].lower() == "branch":
-            body["column"] = '"Branch", "City"'
-        else:
-            body["column"] = '"ProductLine"'
+        body = parse_body_values(conn, body)
 
         results = {"values": []}
+        print(body)
         query_results = conn.execute(f"""SELECT DISTINCT {body["column"]} FROM "Sales" ORDER BY {body["column"]};""")
         
         for line in query_results:
@@ -58,6 +74,13 @@ def retrieve_column_values():
         res = make_response(results)
         return res
 
+# requires session-based login cookie
+# returns: results
+#
+# Looks at the current session with the
+# requesting user and returns the tables
+# and respective columns they are able to
+# access.
 @login_required
 def retrieve_tables():
     res = []
@@ -78,6 +101,16 @@ def retrieve_tables():
     res = make_response({"results": res})
     return res
 
+# requires session-based login cookie
+# http body inputs: table, constraints, columns,
+#   pageNumber
+# returns: results, pkColumns, columns
+#
+# Parses the body for table, constraints, and columns
+# and retrieves the pageNumber page of table data matching
+# the given constraints and sorted by the given columns.
+# Returns the table data, along with its primary key columns
+# and other columns and creates a view table log.
 @login_required
 def retrieve_table_data():
     with db_session.connection() as conn:
@@ -138,6 +171,14 @@ def retrieve_table_data():
         db_session.commit()
         return json.dumps(res, default=str)
 
+# requires session-based login cookie
+# http body inputs: data, pkData, columns
+#
+# Parses the body for data, pkData, and columns then
+# updates each instance of primary keys in pkData to
+# have columns matching data in the Sales table in
+# the current database session. Creates an update sales
+# log.
 @login_required
 def update_sales_data():
     if not current_user.edit_sales:
@@ -146,12 +187,6 @@ def update_sales_data():
     with db_session.connection() as conn:
         body = request.get_json()
         primary_key_columns = ["InvoiceID"]
-        if "columns" not in body or not isinstance(body["columns"], list):
-            body["columns"] = ["Branch", "City", "CustomerType", "Gender", "ProductLine", "UnitPrice", "Quantity", "Tax", "Total", "Date", "Time", "Payment", "cogs", "GrossMarginPercentage", "GrossIncome", "Rating"]
-        if "data" not in body:
-            body["data"] = []
-        if "pkData" not in body:
-            body["pkData"] = []
 
         for column in body["columns"]:
             if '"' in column: return "", 400

@@ -5,6 +5,7 @@ from database import Base
 from flask_login import UserMixin
 import simplejson as json
 
+# A model for representing sales data in a given database session
 class Sales(Base):
     __tablename__ = "Sales"
     id = Column("InvoiceID", String, primary_key=True)
@@ -74,6 +75,7 @@ class Sales(Base):
     def toJSON(self):
         return json.dumps(self.toDict(), default=str)
 
+# A model for representing users data in a given database session
 class Users(Base, UserMixin):
     __tablename__ = "Users"
     id = Column("UserID", String, primary_key=True)
@@ -98,6 +100,7 @@ class Users(Base, UserMixin):
     def __repr__(self):
         return f'<User id={self.id}>'
 
+# A model for representing model data in a given database session
 class ModelData(Base):
     __tablename__ = "ModelData"
     branch = Column("Branch", String, primary_key=True)
@@ -114,6 +117,7 @@ class ModelData(Base):
     def __repr__(self):
         return f'<ModelData branch={self.branch} product_line={self.product_line} date={self.date} quantity={self.quantity}>'
 
+# A model for representing model weights data in a given database session
 class ModelWeights(Base):
     __tablename__ = "ModelWeights"
     id = Column("id", BigInteger, primary_key=True)

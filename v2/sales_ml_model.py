@@ -4,16 +4,29 @@ from collections import OrderedDict
 from models import ModelWeights
 from datetime import datetime
 
+# A class for creating and manipulating
+# a machine learning model used in the
+# prediction of sales.
 class MLModel:
     BATCH_SIZE = 256
 
+    # inputs x, class_
+    #
+    # A mapping function for taking a TensorFlow dataset
+    # and formatting it to match the classes functions.
     def map_func(self, x, class_):
         od_ = OrderedDict()
         od_["lstm_input"] = tf.reshape(tf.stack(list(x.values())), (-1, 1, len(list(x.values()))))
         class_ = tf.reshape(class_, (-1, 1, 1))
         return (od_, class_)
-
-    def __init__(self, conn=None, first_model=False):
+    
+    # inputs: first_model
+    #
+    # Initialies the machine learning model by
+    # retrieving a local copy and putting it into
+    # memory. Unless first_model is true, then it
+    # creates a new model.
+    def __init__(self, first_model=False):
         if first_model:
             model = tf.keras.models.Sequential([
                 tf.keras.layers.LSTM(units=30, input_shape=(1, 24), return_sequences=True, name="lstm"),
@@ -33,6 +46,11 @@ class MLModel:
             model = tf.keras.models.load_model("model/model.h5")
             self.model = model
     
+    # inputs: weights
+    #
+    # Takes weights and assigns each of them
+    # to a layer for a newly created model that
+    # is then used for the class's functions.
     def set_model(self, weights):
         model = tf.keras.models.Sequential([
             tf.keras.layers.LSTM(
@@ -66,7 +84,12 @@ class MLModel:
 
         self.model = model
         self.model.save("model/model.h5")
-        
+
+    # returns: new_model, train_acc, valid_acc
+    #
+    # Creates a new model and trains it for 25 epochs
+    # on the model data locally stored. The model is
+    # then used for the class's functions.
     def remake_model(self):
         model = tf.keras.models.Sequential([
             tf.keras.layers.LSTM(units=30, input_shape=(1, 24), return_sequences=True, name="lstm"),
@@ -86,6 +109,11 @@ class MLModel:
         new_model, train_acc, valid_acc = self.train_model(25)
         return new_model, train_acc, valid_acc
 
+    # returns: new_model, train_acc, valid_acc
+    #
+    # Retrieves current model and trains it for a number
+    # of epochs on the model data locally stored. The
+    # model is then used for the class's functions.
     def train_model(self, epochs):
         train_ds = tf.data.experimental.make_csv_dataset(
             "model/train_data.csv",

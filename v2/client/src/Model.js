@@ -9,6 +9,10 @@ import {
     retrieveModel
 } from "./utils.js";
 
+/*
+ * A React component for displaying the UI for
+ * model actions that can be performed.
+ */
 class Model extends React.Component {
     constructor(props) {
         super(props);

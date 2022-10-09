@@ -8,8 +8,12 @@ from database import db_session
 
 load_dotenv()
 
+# Parses sent http body inputs for values for
+# branch, begDate, endDate, productLine and separateOn
+# and assigns them valid values if they do not have
+# them.
 def parse_body_values(conn, body):
-    if "branch" not in body or not body["branch"]:
+    if "branch" not in body or not body["branch"] or "'" in body["branch"]:
         body["branch"] = "A"
 
     if ("endDate" not in body or not body["endDate"]) and os.getenv("DATA") == "Testing":
@@ -35,8 +39,27 @@ def parse_body_values(conn, body):
     else:
         body["separateOn"] = '"CustomerType"'
 
+    product_lines = []
+
+    if "productLine" in body and isinstance(body["productLine"], list):
+        for product_line in body["productLine"]:
+            if "," not in product_line:
+                product_lines.append(product_line)
+
+    body["productLine"] = product_lines
+
     return body
 
+# requires a session-based login cookie
+# http body inputs: branch, begDate, endDate,
+#   separateOn, productLine
+# 
+# Parses body for branch, begDate, endDate, separateOn,
+# and productLine and queries the database for the
+# quantity and gross income for each product line between
+# the beginDate and endDate in a branch as well as the
+# separate quantity and gross income for each value in
+# the column provided by separateOn.
 @login_required
 def get_sales_timeframe():
     with db_session.connection() as conn:
@@ -49,7 +72,7 @@ def get_sales_timeframe():
             FROM "Sales"
             WHERE "Date" Between '{body["begDate"]}' AND '{body["endDate"]}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
-            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if len(body["productLine"]) > 0 else ""}
             GROUP BY "ProductLine", {body["separateOn"]}
             ORDER BY "ProductLine", GrossIncome DESC;
         """)
@@ -67,6 +90,16 @@ def get_sales_timeframe():
         res = make_response(results)
         return res
 
+# requires a session-based login cookie
+# http body inputs: branch, begDate, endDate,
+#   separateOn, productLine
+# 
+# Parses body for branch, begDate, endDate, separateOn,
+# and productLine and queries the database for the
+# average rating for each productLine between
+# the beginDate and endDate in a branch in a given day
+# (defaulting to None) or the supplied separateOn column
+# values if ony one product line is in productLine.
 @login_required
 def get_ratings_timeframe():
     with db_session.connection() as conn:
@@ -79,7 +112,7 @@ def get_ratings_timeframe():
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
-            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if len(body["productLine"]) > 0 else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
         """)
@@ -94,6 +127,16 @@ def get_ratings_timeframe():
         res = make_response(results)
         return res
 
+# requires a session-based login cookie
+# http body inputs: branch, begDate, endDate,
+#   separateOn, productLine
+# 
+# Parses body for branch, begDate, endDate, separateOn,
+# and productLine and queries the database for the
+# total quantity for each productLine between the
+# beginDate and endDate  in a branch in a given day
+# or the supplied separateOn column values if ony one
+# product line is in productLine.
 @login_required
 def get_quantity_trends():
     with db_session.connection() as conn:
@@ -106,7 +149,7 @@ def get_quantity_trends():
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
-            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if len(body["productLine"]) > 0 else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date"
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, "Date";
         """)
@@ -121,6 +164,16 @@ def get_quantity_trends():
         res = make_response(results)
         return res
 
+# requires a session-based login cookie
+# http body inputs: branch, begDate, endDate,
+#   separateOn, productLine
+# 
+# Parses body for branch, begDate, endDate, separateOn,
+# and productLine and queries the database for the
+# total quantity for each productLine between the
+# beginDate and endDate in a branch for each hour open
+# or the supplied separateOn column values if ony one
+# product line is in productLine.
 @login_required
 def quantity_per_hour():
     with db_session.connection() as conn:
@@ -133,7 +186,7 @@ def quantity_per_hour():
             FROM "Sales"
             WHERE "Date" BETWEEN '{str(body["begDate"])}' AND '{str(body["endDate"])}'
             {'AND "Branch"=' + "'" + body['branch'] + "'"}
-            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if "productLine" in body and body["productLine"] else ""}
+            {'AND "ProductLine" = ANY' + "('{" + ",".join(body["productLine"]) + "}')" if len(body["productLine"]) > 0 else ""}
             GROUP BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'}, EXTRACT(HOUR FROM "Time")
             ORDER BY {body["separateOn"] if len(body["productLine"]) == 1 else '"ProductLine"'};
         """)
