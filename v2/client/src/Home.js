@@ -541,7 +541,7 @@ class Home extends React.Component {
             return (
                 <div id="home-page" className="home-page">
                     {this.getKeyDisplay()}
-                    <div className="sales-query-inputs">
+                    <div className="sales-query-inputs container">
                         <div className="sales-select-inputs">
                             <select id="sales-branch-input" name="sales-branch-input">
                                 {this.state.branches && this.state.branches.map(x => {
@@ -572,7 +572,7 @@ class Home extends React.Component {
                             })}
                         </select>
                     </div>
-                    <button type="button" onClick={this.handleGetDisplayData}>Submit</button>
+                    <button type="button" onClick={this.handleGetDisplayData}>Retrieve</button>
                     {this.state.predictions && this.getPredictionsDisplay()}
                     {this.getGraphDisplay()}
                     {(this.state.loadingGraphs1to3 ||

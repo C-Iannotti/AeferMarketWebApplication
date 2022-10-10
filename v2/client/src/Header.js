@@ -15,7 +15,29 @@ class Header extends React.Component {
 
         this.handleLogout = this.handleLogout.bind(this);
         this.handlePageChange = this.handlePageChange.bind(this);
+        this.handleClick = this.handleClick.bind(this);
         this.logout = logout.bind(this);
+    }
+
+    componentDidMount() {
+        window.addEventListener("click", this.handleClick);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener("click", this.handleClick);
+    }
+
+    handleClick(e) {
+        if (e.target.matches(".logout-dropdown-button")) {
+            this.setState({
+                hasDropdown: !this.state.hasDropdown
+            }, () => document.getElementById("logout-dropdown").classList.toggle("logout-dropdown-display"));
+        }
+        else if (!document.getElementById("logout-dropdown").contains(e.target) && !document.getElementById("logout-dropdown").classList.contains("logout-dropdown-display")) {
+            this.setState({
+                hasDropdown: false
+            }, () => document.getElementById("logout-dropdown").classList.toggle("logout-dropdown-display"));
+        }
     }
 
     handleLogout() {
@@ -29,7 +51,7 @@ class Header extends React.Component {
     }
 
     handlePageChange(page) {
-        this.props.navigate(page)
+        this.props.navigate(page);
     }
 
     render() {
@@ -41,7 +63,23 @@ class Header extends React.Component {
                     {this.props.dataAccess && <div id="data-button" className="header-button" onClick={() => this.handlePageChange("/data")}>Data</div>}
                     {this.props.logsAccess && <div id="logs-button" className="header-button" onClick={() => this.handlePageChange("/logs")}>Logs</div>}
                 </div>
+                <div className="header-user-container">
                 <div id="header-username" className="header-username" onClick={this.handleLogout}>{this.props.username}</div>
+                    <div>
+                        <button type="button"
+                                className="logout-dropdown-button">{this.state.hasDropdown ? <>&and;</> : <>&or;</>}</button>
+                        <div className="logout-dropdown-parent">
+                            <div id="logout-dropdown" className="logout-dropdown logout-dropdown-display">
+                                {<button type="button"
+                                    id="logout-button"
+                                    className="logout-button"
+                                    onClick={() => this.handleLogout()}
+                                    >Logout</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }

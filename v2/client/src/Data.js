@@ -194,7 +194,7 @@ class Data extends React.Component {
         if (this.props.authenticated) {
             return (
                 <div className="data-page">
-                    <div className="data-query-inputs">
+                    <div className="data-query-inputs container">
                         <div className="data-query-input-row">
                             <select id="table-input" value={this.state.curTable} onChange={e => {
                                 this.setState({curTable: e.target.value, constraintsInput: [], columnsInput: []});

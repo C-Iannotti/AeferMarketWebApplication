@@ -106,15 +106,18 @@ class App extends React.Component {
               setLogoutState={this.setLogoutState}
               dataAccess={this.state.dataAccess}
               modelAccess={this.state.modelAccess}
+              addMessage={this.addMessage}
               logsAccess={this.state.logsAccess}/>}
-          <Routes>
-            <Route path="/" element={<Home addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-            <Route path="/login" element={<Login addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-            <Route path="/data" element={<Data addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-            <Route path="/logs" element={<Logs addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-            <Route path="/model" element={<Model runFunctionAcrossApp={this.runFunctionAcrossApp} addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
-            <Route path="*" element={<p>Unable to find Route!</p>}/>
-          </Routes>
+          <div className="page">
+            <Routes>
+              <Route path="/" element={<Home addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+              <Route path="/login" element={<Login addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+              <Route path="/data" element={<Data addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+              <Route path="/logs" element={<Logs addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+              <Route path="/model" element={<Model runFunctionAcrossApp={this.runFunctionAcrossApp} addMessage={this.addMessage} checkLogin={this.checkLogin} authenticated={this.state.authenticated} />} />
+              <Route path="*" element={<p>Unable to find Route!</p>}/>
+            </Routes>
+          </div>
           {this.getMessageDisplayHTML()}
         </div>
       </BrowserRouter>

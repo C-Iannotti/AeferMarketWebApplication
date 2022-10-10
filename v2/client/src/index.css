@@ -1,3 +1,12 @@
+:root {
+  --header-height: 65px;
+  --header-background-color: black;
+  --header-text-color: rgb(235, 233, 233);
+  --hover-color: red;
+  --container-background-color: rgb(165, 160, 160);
+  --background-color: white;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,6 +14,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
 }
 
 .app {
@@ -14,6 +24,11 @@ body {
   width: 100%;
   padding: 0;
   margin: 0;
+}
+
+.page {
+  padding-top: var(--header-height);
+  margin-top: 15px;
 }
 
 .home-page {
@@ -47,14 +62,17 @@ body {
 }
 
 .header {
+  position: fixed;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  height: 50px;
-  margin-bottom: 15px;
+  background: var(--header-background-color);
+  color: var(--header-text-color);
+  height: var(--header-height);
   gap: 20px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 }
 
 .header-buttons {
@@ -65,25 +83,70 @@ body {
   padding-left: 50px;
 }
 
-
+.header-buttons :hover {
+  color: var(--hover-color);
+}
 
 .header-button {
   cursor: pointer;
   font-size: 1.2em;
 }
 
+.header-user-container {
+  display: flex;
+  flex-direction: row;
+  padding-right: 15px;
+}
+
 .header-username {
   cursor: pointer;
-  text-decoration: underline;
-  color:aqua;
-  padding-right: 15px;
+  color: white;
   font-size: 1.1em;
+}
+
+.logout-dropdown-button {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  color: #E6E6FA;
+  display: inline-block;
+}
+
+.logout-dropdown-button:hover {
+  text-decoration-color: var(--hover-color);
+  color: var(--hover-color);
+}
+
+.logout-dropdown-parent {
+  position: relative;
+}
+
+.logout-dropdown {
+  display: block;
+  position: absolute;
+  right: 0;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  z-index: 1;
+}
+
+.logout-dropdown-display {
+  display: none;
 }
 
 .login-page-inputs {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.container {
+  background-color: var(--container-background-color);
+  padding: 15px;
+  margin: 15px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  border-radius: 8px;
 }
 
 code {
@@ -267,6 +330,10 @@ code {
   cursor: pointer;
 }
 
+.graph-display-page-button:hover {
+  color: var(--hover-color);
+}
+
 .graph-display-page-button-background {
   position: absolute;
   background-color: rgb(235, 229, 229);
@@ -278,7 +345,7 @@ code {
 }
 
 .selected-button {
-  box-shadow:0 0 10px gold,0 0 30px gold;
+  box-shadow:0 0 3px gold,0 0 3px gold;
 }
 
 .logs-page-inputs {
@@ -311,6 +378,10 @@ code {
   cursor: pointer;
 }
 
+.display-arrow:hover {
+  color: var(--hover-color);
+}
+
 .page-input {
   width: 70px;
 }
@@ -321,7 +392,7 @@ code {
   gap: 10px;
   padding-bottom: 25px;
   width: 90vw;
-  max-width: 500px;
+  max-width: 400px;
 }
 
 .add-specification-button {
@@ -348,6 +419,7 @@ code {
   justify-content: space-around;
   flex-wrap: wrap;
   gap: 25px;
+  margin-bottom: 25px;
 }
 
 .query-table-buttons {
