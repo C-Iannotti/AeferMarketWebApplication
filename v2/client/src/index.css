@@ -27,8 +27,8 @@ body {
 }
 
 .page {
-  padding-top: var(--header-height);
-  margin-top: 15px;
+  padding-top: calc(var(--header-height) + 15px);
+  padding-bottom: 30px;
 }
 
 .home-page {
@@ -410,7 +410,32 @@ code {
   max-width: 90vw;
   overflow-x: scroll;
   gap: 10px;
-  padding-bottom: 20px;
+  margin-bottom: 20px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+table {
+  text-align: center;
+  border-collapse: collapse;
+}
+
+table tr {
+  padding: 0;
+  margin: 0;
+}
+
+table td {
+  border: 1px solid black;
+  padding: 5px;
+}
+
+table th {
+  background-color: var(--container-background-color);
+  border: none;
+  padding: 5px;
+  height: 40px;
+  font-size: 1.05em;
+  
 }
 
 .query-buttons {
@@ -495,6 +520,10 @@ code {
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
+.total-messages:hover {
+  background-color: var(--hover-color);
+}
+
 .current-message {
   display: flex;
   flex-direction: row;
@@ -518,13 +547,13 @@ code {
   border: none;
   padding: 5px;
   cursor: pointer;
-  color: rgb(103, 114, 127);
+  color: #66023C;
   display: inline-block;
   margin: -3px 10px 0px 0px;
 }
 
 .message-clear-button:hover {
-  color: #E0B0FF;
+  color:var(--hover-color);
 }
 
 .slide-in {
