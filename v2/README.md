@@ -2,8 +2,16 @@
 This version of the project is being developed to revamp the original version into an end-to-end web application. The goal
 of this version is to recreate the functionality of the original version in ReactJS and Flask, update the funcionality for
 easier or more accurate use, improve performance, and update visuals.
+
 Data: https://www.kaggle.com/datasets/aungpyaeap/supermarket-sales
+
 Website: https://www.ciannotamdashboard.xyz/login
+
+Login Credentials:
+* username: authority1, password: Iam_91
+* username: authority2, password: Iam_92
+* username: authority3, password: Iam_93
+
 ## Details
 The application is accessed after logging in, setting appropriate permissions througout the application's lifetime.
 After logging in, the user is redirected to a dashboard where they choose the branch, timeframe, and product lines
